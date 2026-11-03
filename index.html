@@ -1,0 +1,170 @@
+
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MURDER FILES — CASE 001</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;min-height:100vh;background:#101014;color:#eee;
+  font-family:Georgia,serif;display:flex;justify-content:center;
+  align-items:center;padding:22px;
+}
+.container{width:100%;max-width:480px;text-align:center}
+.tag{color:#c5a36b;letter-spacing:5px;font:12px Arial}
+h1{font-size:39px;letter-spacing:3px;margin:18px 0 5px}
+.case{color:#c5a36b;letter-spacing:4px;font:13px Arial}
+.line{height:1px;background:#66543b;margin:28px 0}
+.intro{color:#aaa;line-height:1.7;font-size:16px}
+.panel{background:#1b1b22;border:1px solid #51432f;padding:24px;
+border-radius:8px;margin-top:25px}
+input{
+ width:100%;padding:15px;margin:8px 0;background:#101014;
+ border:1px solid #65543d;color:white;border-radius:4px;
+ font-size:16px;text-align:center
+}
+button{
+ width:100%;padding:15px;margin-top:12px;border:0;border-radius:4px;
+ background:#b08a50;color:#15120e;font-weight:bold;
+ letter-spacing:1px;font-size:14px;cursor:pointer
+}
+button.secondary{background:transparent;color:#d4b47c;border:1px solid #806743}
+button:disabled{opacity:.5}
+#status{min-height:45px;margin-top:18px;color:#d5b77f;
+font:14px Arial;line-height:1.5}
+.small{font:11px Arial;color:#777;margin-top:25px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="tag">UN CASO. NESSUNO È INNOCENTE.</div>
+  <h1>MURDER FILES</h1>
+  <div class="case">CASE 001</div>
+  <div class="line"></div>
+  <p class="intro">
+    Una serata. Un delitto. Dieci sospettati.<br>
+    La verità è nascosta tra gli indizi.<br>
+    Riuscirete a scoprire chi mente?
+  </p>
+
+  <div class="panel" id="entry">
+    <input id="nickname" maxlength="20" placeholder="Il tuo nome da investigatore">
+    <button onclick="createRoom()">CREA UNA STANZA</button>
+    <div class="line"></div>
+    <input id="roomCode" maxlength="8" placeholder="CODICE DELLA STANZA">
+    <button class="secondary" onclick="joinRoom()">ENTRA NELLA STANZA</button>
+  </div>
+
+  <div class="panel hidden" id="lobby">
+    <div class="tag">STANZA INVESTIGATIVA</div>
+    <h2 id="roomTitle"></h2>
+    <p id="welcome"></p>
+    <p class="intro">Condividi il codice con gli altri investigatori.</p>
+    <button onclick="copyCode()">COPIA CODICE</button>
+    <p id="lobbyStatus"></p>
+    <button class="secondary" onclick="location.reload()">TORNA ALL'INIZIO</button>
+  </div>
+
+  <div id="status"></div>
+  <div class="small">MURDER FILES • CLASSIFIED CASE 001</div>
+</div>
+
+<script>
+const SUPABASE_URL = https://bzxygqzsgrjgjarxzedo.supabase.co;
+const SUPABASE_KEY = sb_publishable_9gMfKc1fOOYJkgDpyh1n3g_vXOAezed;
+
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentCode = "";
+
+function getNickname(){
+  return document.getElementById("nickname").value.trim();
+}
+
+function showError(message){
+  document.getElementById("status").textContent = message;
+}
+
+async function createRoom(){
+  const nickname = getNickname();
+  if(nickname.length < 2){
+    showError("Inserisci un nickname di almeno 2 caratteri.");
+    return;
+  }
+
+  showError("Creazione della stanza in corso...");
+  const {data,error} = await db.rpc("create_game_room", {
+    p_nickname:nickname
+  });
+
+  if(error){
+    showError("Errore: " + error.message);
+    return;
+  }
+  enterLobby(data,nickname);
+}
+
+async function joinRoom(){
+  const nickname = getNickname();
+  const code = document.getElementById("roomCode").value.trim().toUpperCase();
+
+  if(nickname.length < 2){
+    showError("Inserisci prima il tuo nickname.");
+    return;
+  }
+  if(code.length < 4){
+    showError("Inserisci un codice stanza valido.");
+    return;
+  }
+
+  showError("Accesso alla stanza in corso...");
+  const {data,error} = await db.rpc("join_game_room", {
+    p_code:code,
+    p_nickname:nickname
+  });
+
+  if(error){
+    showError("Errore: " + error.message);
+    return;
+  }
+  enterLobby(data,nickname);
+}
+
+function enterLobby(data,nickname){
+  if(!data || !data.room_code){
+    showError("Risposta del database non valida.");
+    return;
+  }
+
+  currentCode = data.room_code;
+  sessionStorage.setItem("murder_player_id",data.player_id);
+  sessionStorage.setItem("murder_player_token",data.player_token);
+  sessionStorage.setItem("murder_room_code",currentCode);
+
+  document.getElementById("entry").classList.add("hidden");
+  document.getElementById("lobby").classList.remove("hidden");
+  document.getElementById("roomTitle").textContent = currentCode;
+  document.getElementById("welcome").textContent =
+    "Benvenuta, " + nickname + ". Sei entrata nel caso.";
+  document.getElementById("status").textContent = "";
+  document.getElementById("lobbyStatus").textContent =
+    "In attesa degli altri investigatori...";
+}
+
+async function copyCode(){
+  try{
+    await navigator.clipboard.writeText(currentCode);
+    document.getElementById("lobbyStatus").textContent =
+      "Codice copiato!";
+  }catch(e){
+    document.getElementById("lobbyStatus").textContent =
+      "Il codice della stanza è: " + currentCode;
+  }
+}
+</script>
+</body>
+</html>
