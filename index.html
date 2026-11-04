@@ -160,6 +160,93 @@ async function copyCode(){
     document.getElementById("lobbyStatus").textContent = "Il codice della stanza è: "+currentCode;
   }
 }
-</script>
-</body>
-</html>
+
+async function startGame() {
+  const button = document.getElementById("startGameBtn");
+  const status = document.getElementById("lobbyStatus");
+
+  const playerId = sessionStorage.getItem("murder_player_id");
+  const token = sessionStorage.getItem("murder_player_token");
+
+  if (!currentCode || !playerId || !token) {
+    status.textContent = "Sessione non valida. Rientra nella stanza.";
+    return;
+  }
+
+  button.disabled = true;
+  status.textContent = "Avvio della partita in corso...";
+
+  const { data, error } = await db.rpc("start_game", {
+    p_room_code: currentCode,
+    p_player_id: playerId,
+    p_access_token: token
+  });
+
+  if (error) {
+    status.textContent = "Impossibile avviare: " + error.message;
+    button.disabled = false;
+    return;
+  }
+
+  status.textContent = "Partita iniziata! Caricamento personaggio...";
+  await showMyCharacter();
+}
+
+async function showMyCharacter() {
+  const playerId = sessionStorage.getItem("murder_player_id");
+  const token = sessionStorage.getItem("murder_player_token");
+  const status = document.getElementById("lobbyStatus");
+
+  const { data, error } = await db.rpc("get_my_character", {
+    p_player_id: playerId,
+    p_access_token: token
+  });
+
+  if (error || !data) {
+    status.textContent = "Personaggio non disponibile: " +
+      (error ? error.message : "Nessun dato ricevuto");
+    return;
+  }
+
+  if (lobbyRefreshTimer) clearInterval(lobbyRefreshTimer);
+
+  document.getElementById("lobby").classList.add("hidden");
+
+  const panel = document.createElement("div");
+  panel.className = "panel";
+  panel.id = "characterPanel";
+
+  const heading = document.createElement("h2");
+  heading.textContent = data.character_name || "PERSONAGGIO SEGRETO";
+
+  const description = document.createElement("p");
+  description.className = "intro";
+  description.textContent = data.description || "";
+
+  const storyTitle = document.createElement("h3");
+  storyTitle.textContent = "LA TUA STORIA SEGRETA";
+
+  const story = document.createElement("p");
+  story.className = "intro";
+  story.textContent = data.private_story || "Nessuna storia disponibile.";
+
+  const objectiveTitle = document.createElement("h3");
+  objectiveTitle.textContent = "IL TUO OBIETTIVO";
+
+  const objective = document.createElement("p");
+  objective.className = "intro";
+  objective.textContent =
+    data.secret_objective || "Scopri la verità.";
+
+  panel.append(
+    heading,
+    description,
+    storyTitle,
+    story,
+    objectiveTitle,
+    objective
+  );
+
+  document.querySelector(".container").appendChild(panel);
+}
+
