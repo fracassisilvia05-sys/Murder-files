@@ -454,6 +454,7 @@ async function refreshGame() {
         <h2 id="phaseTitle"></h2>
         <p id="gameMessage" class="intro"></p>
         <div id="gameControls"></div>
+        <div id="dilemmaArea"></div>
         <div id="gameClues"></div>
         <div id="voteArea"></div>
         <div id="verdictArea"></div>
@@ -492,6 +493,9 @@ async function refreshGame() {
 
     if (changed) {
       await loadPhaseClues();
+    if (phase === "stage_4") {
+  await loadDilemma();
+}
     }
 
     if (phase === "stage_6") {
@@ -505,6 +509,147 @@ async function refreshGame() {
 async function refreshGameAfterAction() {
   gameUpdating = false;
   await refreshGame();
+}
+
+async function loadDilemma() {
+  const area = document.getElementById("dilemmaArea");
+  if (!area) return;
+
+  const { data: assignment, error } = await db.rpc(
+    "get_my_dilemma_assignment",
+    gameCredentials()
+  );
+
+  if (error) {
+    area.textContent = "Errore dilemma: " + error.message;
+    return;
+  }
+
+  if (assignment.status === "joker") {
+    area.replaceChildren();
+
+    const title = document.createElement("h2");
+    title.textContent = "♠️ SEI IL JOLLY";
+
+    const message = document.createElement("p");
+    message.textContent =
+      "Sei l'Osservatore. Ricevi automaticamente 2 punti.";
+
+    area.append(title, message);
+    return;
+  }
+
+  if (assignment.status !== "paired") {
+    area.textContent = "Abbinamento non disponibile.";
+    return;
+  }
+
+  const { data: result, error: resultError } =
+    await db.rpc(
+      "get_my_dilemma_result",
+      gameCredentials()
+    );
+
+  if (resultError) {
+    area.textContent = "Errore risultato: " +
+      resultError.message;
+    return;
+  }
+
+  // Non ricreare i pulsanti a ogni aggiornamento.
+  if (
+    result.status === "waiting" &&
+    !result.has_chosen &&
+    area.dataset.mode === "choosing"
+  ) {
+    return;
+  }
+
+  area.replaceChildren();
+
+  const title = document.createElement("h2");
+  title.textContent = "♠️ IL DILEMMA DEL PRIGIONIERO";
+
+  const opponent = document.createElement("p");
+  opponent.textContent =
+    "Il tuo avversario è: " + assignment.opponent;
+
+  area.append(title, opponent);
+
+  if (result.status === "completed") {
+    area.dataset.mode = "completed";
+
+    const summary = document.createElement("p");
+    summary.textContent =
+      "La tua scelta: " +
+      (result.my_choice === "cooperate"
+        ? "COLLABORA" : "TRADISCI") +
+      " — Scelta avversaria: " +
+      (result.opponent_choice === "cooperate"
+        ? "COLLABORA" : "TRADISCI");
+
+    const points = document.createElement("h3");
+    points.textContent =
+      "Tu: " + result.my_points +
+      " punti — Avversario: " +
+      result.opponent_points + " punti";
+
+    area.append(summary, points);
+    return;
+  }
+
+  if (result.has_chosen) {
+    area.dataset.mode = "waiting";
+
+    const waiting = document.createElement("p");
+    waiting.textContent =
+      "Decisione registrata. Attendi il tuo avversario.";
+    area.appendChild(waiting);
+    return;
+  }
+
+  area.dataset.mode = "choosing";
+
+  const instructions = document.createElement("p");
+  instructions.textContent =
+    "Scegli in segreto. La tua decisione sarà definitiva.";
+
+  const cooperate = document.createElement("button");
+  cooperate.textContent = "🤝 COLLABORA";
+
+  const betray = document.createElement("button");
+  betray.textContent = "🎭 TRADISCI";
+  betray.className = "secondary";
+
+  async function choose(choice) {
+    if (!confirm("Confermi la scelta definitiva?")) return;
+
+    cooperate.disabled = true;
+    betray.disabled = true;
+
+    const { error: choiceError } = await db.rpc(
+      "submit_dilemma_choice",
+      {
+        ...gameCredentials(),
+        p_choice: choice
+      }
+    );
+
+    if (choiceError) {
+      alert("Errore: " + choiceError.message);
+      cooperate.disabled = false;
+      betray.disabled = false;
+      return;
+    }
+
+    area.dataset.mode = "";
+    await loadDilemma();
+  }
+
+  cooperate.onclick = () => choose("cooperate");
+  betray.onclick = () => choose("betray");
+
+  area.append(instructions, cooperate, betray);
 }
 
 async function loadPhaseClues() {
