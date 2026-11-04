@@ -803,5 +803,296 @@ loadVerdict=async function(isHost){
 })();
 </script>
 
+<!-- MURDER FILES — SINCRONIZZAZIONE SERVER -->
+<script>
+(()=>{
+'use strict';
+
+const byId=id=>document.getElementById(id);
+
+let actionBusy=false;
+let syncVersion=0;
+
+function actionButtons(){
+  const panel=byId('mfHybridPanel');
+  if(!panel)return {};
+
+  const buttons=[...panel.querySelectorAll('button')];
+
+  return {
+    silence:buttons.find(b=>
+      b.textContent.includes('DIRITTO AL SILENZIO')
+    ),
+    reward:byId('mfUseReward')
+  };
+}
+
+function setActionState(state){
+  const {silence,reward}=actionButtons();
+
+  if(silence){
+    silence.disabled=!!state.silence_used;
+    silence.textContent=state.silence_used
+      ?'DIRITTO AL SILENZIO GIÀ USATO'
+      :'USA IL MIO DIRITTO AL SILENZIO';
+  }
+
+  if(reward){
+    if(state.reward_used){
+      reward.disabled=true;
+      reward.textContent='CARTA GIÀ UTILIZZATA';
+    }else if(
+      reward.textContent==='CARTA GIÀ UTILIZZATA'
+    ){
+      reward.disabled=false;
+      reward.textContent='SEGNA CARTA COME UTILIZZATA';
+    }
+  }
+}
+
+async function syncActions(){
+  const version=++syncVersion;
+  const panel=byId('mfHybridPanel');
+
+  if(!panel)return;
+
+  try{
+    const state=await rpc(
+      'mf_get_actions',
+      credentials()
+    );
+
+    if(version!==syncVersion)return;
+    if(!byId('mfHybridPanel'))return;
+
+    setActionState(state);
+  }catch(e){
+    const {silence,reward}=actionButtons();
+
+    if(silence)silence.disabled=true;
+    if(reward)reward.disabled=true;
+
+    gameMessage(
+      'Impossibile verificare le azioni: '+e.message
+    );
+  }
+}
+
+/*
+  Intercetta i due pulsanti PRIMA dei vecchi
+  gestori che salvavano soltanto nel browser.
+*/
+document.addEventListener('click',async event=>{
+  const target=event.target;
+
+  if(!(target instanceof Element))return;
+
+  const btn=target.closest('button');
+  if(!btn)return;
+
+  const {silence,reward}=actionButtons();
+
+  let action=null;
+
+  if(btn===silence)action='silence';
+  if(btn===reward)action='reward';
+
+  if(!action)return;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+
+  if(actionBusy || btn.disabled)return;
+
+  const question=action==='silence'
+    ?'Vuoi utilizzare definitivamente il diritto al silenzio?'
+    :'Vuoi utilizzare definitivamente la carta vantaggio?';
+
+  if(!confirm(question))return;
+
+  actionBusy=true;
+  btn.disabled=true;
+
+  try{
+    const state=await rpc(
+      'mf_use_action',
+      {
+        ...credentials(),
+        p_action:action
+      }
+    );
+
+    setActionState(state);
+
+    if(action==='silence'){
+      gameMessage(
+        'Diritto al silenzio registrato sul server.'
+      );
+    }else{
+      gameMessage(
+        'Carta vantaggio utilizzata e registrata.'
+      );
+    }
+
+  }catch(e){
+    gameMessage(e.message);
+    await syncActions();
+  }finally{
+    actionBusy=false;
+  }
+
+},true);
+
+
+/*
+  Quando cambia la fase, aggiorna lo stato
+  delle carte dal database.
+*/
+const previousInvestigation=renderInvestigation;
+
+renderInvestigation=function(phase){
+  previousInvestigation(phase);
+
+  if(['stage_2','stage_3','stage_5'].includes(phase)){
+    syncActions();
+  }
+};
+
+
+/*
+  Mostra la vittoria calcolata da Supabase,
+  non quella ricostruita dal browser.
+*/
+const previousVerdict=loadVerdict;
+
+loadVerdict=async function(isHost){
+  await previousVerdict(isHost);
+
+  const final=byId('verdictArea');
+
+  if(
+    !final ||
+    !final.classList.contains('revealed')
+  )return;
+
+  try{
+    const result=await rpc(
+      'mf_get_final_result',
+      credentials()
+    );
+
+    if(!result?.revealed)return;
+
+    // Rimuove il vecchio risultato locale.
+    const old=byId('mfFinalExplanation');
+    if(old)old.remove();
+
+    let panel=byId('mfServerResult');
+
+    if(!panel){
+      panel=document.createElement('section');
+      panel.id='mfServerResult';
+      panel.className='mf-box';
+      final.append(panel);
+    }
+
+    panel.replaceChildren();
+
+    function line(tag,text){
+      const e=document.createElement(tag);
+      e.textContent=text;
+      panel.append(e);
+    }
+
+    line(
+      'h2',
+      result.investigators_win
+        ?'🏆 VINCONO GLI INVESTIGATORI'
+        :'♠ VINCE L’ASSASSINO'
+    );
+
+    line(
+      'p',
+      'Colpevole: '+result.culprit
+    );
+
+    line(
+      'p',
+      'Voti corretti: '
+      +result.correct_votes
+      +' su '+result.players_total
+      +'. Voti necessari: '
+      +result.required_votes+'.'
+    );
+
+    line('h3','RICOSTRUZIONE DEL DELITTO');
+
+    line(
+      'p',
+      '23:31 — Dal telefono della vittima '
+      +'parte un messaggio misterioso.'
+    );
+
+    line(
+      'p',
+      '23:38 — La telecamera del corridoio '
+      +'viene disattivata.'
+    );
+
+    line(
+      'p',
+      '23:41 — Le credenziali del colpevole '
+      +'vengono utilizzate per entrare nello studio.'
+    );
+
+    line(
+      'p',
+      '23:41–23:44 — Intervallo della morte.'
+    );
+
+    line(
+      'p',
+      '23:47 — Adriano Valenti viene trovato morto.'
+    );
+
+    line(
+      'h3',
+      'LE PROVE CONTRO IL COLPEVOLE'
+    );
+
+    line(
+      'p',
+      'Le credenziali personali, il codice '
+      +'temporaneo e le tracce sul fermacarte '
+      +'collegano il colpevole alla scena. '
+      +'Queste prove devono essere valutate '
+      +'insieme: nessuna dimostra isolatamente '
+      +'ogni passaggio del delitto.'
+    );
+
+  }catch(e){
+    gameMessage(
+      'Errore nel risultato ufficiale: '+e.message
+    );
+  }
+};
+
+
+/*
+  Aggiorna lo stato quando il giocatore
+  torna alla scheda del browser.
+*/
+document.addEventListener('visibilitychange',()=>{
+  if(
+    !document.hidden &&
+    byId('mfHybridPanel')
+  ){
+    syncActions();
+  }
+});
+
+})();
+</script>
+
 </body>
 </html>
