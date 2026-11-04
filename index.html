@@ -1147,4 +1147,210 @@ document.addEventListener('visibilitychange',()=>{
 </script>
 
 </body>
+  
+<!-- MURDER FILES — RITRATTI DEI PERSONAGGI -->
+<style>
+.mf-portrait{
+  width:100%;
+  aspect-ratio:6/7;
+  background-image:url('./murder_files_volti.jpg');
+  background-size:500% 200%;
+  background-repeat:no-repeat;
+  background-color:#17151a;
+  border:2px solid #a68756;
+  border-radius:6px;
+}
+#mfMyPortrait{
+  max-width:230px;
+  margin:18px auto;
+  box-shadow:0 8px 30px #0008;
+}
+#mfGallery{
+  margin:25px 0;
+  padding:18px 12px;
+  border:1px solid #6e593c;
+  border-radius:9px;
+  background:#17161c;
+}
+#mfGalleryGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.mf-suspect{
+  padding:8px;
+  border:1px solid #554936;
+  border-radius:7px;
+  background:#211e22;
+}
+.mf-suspect .mf-portrait{
+  border-width:1px;
+}
+.mf-suspect strong{
+  display:block;
+  margin-top:9px;
+  font:12px Arial,sans-serif;
+  color:#e3c08a;
+}
+.mf-suspect small{
+  display:block;
+  margin-top:5px;
+  font:11px Arial,sans-serif;
+  color:#bdb3a5;
+  line-height:1.4;
+}
+#mfCulpritPortrait{
+  max-width:240px;
+  margin:20px auto;
+  border-color:#bd554d;
+}
+</style>
+
+<script>
+(()=>{
+'use strict';
+
+const characters=[
+  ['Il Calcolatore','Analizza ogni decisione.'],
+  ['Il Giocatore','Rischia tutto pur di vincere.'],
+  ['Il Manipolatore','Conosce le debolezze altrui.'],
+  ['Il Ribelle','Vuole distruggere l’esperimento.'],
+  ['Il Traditore','Ha infranto un accordo.'],
+  ["L'Enigma",'Nessuno conosce il suo passato.'],
+  ['La Maschera','Nasconde le proprie emozioni.'],
+  ['La Psicologa','Studia il comportamento umano.'],
+  ['La Stratega','Pianifica ogni mossa.'],
+  ['La Testimone','Ha visto qualcosa di proibito.']
+];
+
+const normalize=s=>
+  String(s||'')
+    .replace(/[’‘`]/g,"'")
+    .trim()
+    .toLocaleLowerCase('it');
+
+function characterIndex(name){
+  return characters.findIndex(c=>
+    normalize(c[0])===normalize(name)
+  );
+}
+
+function portrait(index,id){
+  const e=document.createElement('div');
+  e.className='mf-portrait';
+  if(id)e.id=id;
+  e.setAttribute('role','img');
+  e.setAttribute(
+    'aria-label','Ritratto di '+characters[index][0]
+  );
+
+  const col=index%5;
+  const row=Math.floor(index/5);
+
+  e.style.backgroundPosition=
+    (col*25)+'% '+(row*100)+'%';
+
+  return e;
+}
+
+function showMyPortrait(){
+  const name=document.getElementById('characterName');
+  if(!name || !name.textContent.trim())return;
+
+  const index=characterIndex(name.textContent);
+  if(index<0)return;
+
+  const existing=document.getElementById('mfMyPortrait');
+  if(existing)existing.remove();
+
+  name.insertAdjacentElement(
+    'afterend',
+    portrait(index,'mfMyPortrait')
+  );
+}
+
+function showGallery(){
+  const game=document.getElementById('gameArea');
+  if(!game || document.getElementById('mfGallery'))return;
+
+  const section=document.createElement('section');
+  section.id='mfGallery';
+
+  const title=document.createElement('h3');
+  title.textContent='♠ ARCHIVIO DEI SOSPETTATI';
+
+  const intro=document.createElement('p');
+  intro.className='intro';
+  intro.textContent=
+    'Dieci volti. Dieci segreti. Un assassino.';
+
+  const grid=document.createElement('div');
+  grid.id='mfGalleryGrid';
+
+  characters.forEach((c,i)=>{
+    const card=document.createElement('div');
+    card.className='mf-suspect';
+
+    const name=document.createElement('strong');
+    name.textContent=c[0];
+
+    const description=document.createElement('small');
+    description.textContent=c[1];
+
+    card.append(
+      portrait(i),
+      name,
+      description
+    );
+    grid.append(card);
+  });
+
+  section.append(title,intro,grid);
+  game.prepend(section);
+}
+
+function showCulpritPortrait(){
+  const verdict=document.getElementById('verdictArea');
+  if(
+    !verdict ||
+    !verdict.classList.contains('revealed')
+  )return;
+
+  const heading=verdict.querySelector('h1');
+  if(!heading)return;
+
+  const index=characterIndex(heading.textContent);
+  if(index<0)return;
+
+  if(document.getElementById('mfCulpritPortrait'))return;
+
+  heading.insertAdjacentElement(
+    'afterend',
+    portrait(index,'mfCulpritPortrait')
+  );
+}
+
+function updatePortraits(){
+  const panel=document.getElementById('characterPanel');
+
+  if(panel && !panel.classList.contains('hidden')){
+    const name=document.getElementById('characterName');
+
+    if(name && name.textContent.trim()){
+      if(!document.getElementById('mfMyPortrait')){
+        showMyPortrait();
+      }
+      showGallery();
+    }
+  }
+
+  showCulpritPortrait();
+}
+
+updatePortraits();
+setInterval(updatePortraits,1500);
+
+})();
+</script>
+
 </html>
