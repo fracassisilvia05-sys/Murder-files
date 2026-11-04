@@ -318,7 +318,12 @@ async function refreshGame(){
  }
  if(phase==="stage_4")await loadDilemma();
  if(phase==="stage_5"||phase==="stage_6")await loadReward();
- if(phase==="stage_6")await loadVerdict(Boolean(state.is_host));
+ if(
+  phase==="stage_6" &&
+  !$("verdictArea").classList.contains("revealed")
+){
+  await loadVerdict(Boolean(state.is_host));
+}
  }catch(e){gameMessage(e.message)}
  finally{busy=false}
 }
