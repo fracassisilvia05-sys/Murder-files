@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MURDER FILES — CASE 001</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:dark;--gold:#c9a46a;--line:#584a36}
+*{box-sizing:border-box}body{margin:0;background:#101014;color:#eee;font-family:Georgia,serif;min-height:100vh;padding:24px 16px}
+.container{max-width:620px;margin:0 auto;text-align:center}.tag{font:12px Arial,sans-serif;letter-spacing:4px;color:var(--gold)}
+h1{font-size:clamp(31px,7vw,44px);letter-spacing:3px;margin:16px 0 6px}h2{font-size:23px;line-height:1.3}h3{font-size:18px}
+.case{font:13px Arial,sans-serif;letter-spacing:4px;color:var(--gold)}.line{height:1px;background:var(--line);margin:24px 0}
+.intro{color:#c2bcb5;line-height:1.65;font-size:16px;white-space:pre-line}.panel{background:#1b1b22;border:1px solid var(--line);padding:24px 20px;border-radius:9px;margin:24px 0}
+input,select{width:100%;padding:14px;margin:8px 0;background:#101014;border:1px solid #78674e;color:white;border-radius:5px;font-size:16px}
+button{width:100%;padding:15px;margin-top:12px;border:0;border-radius:5px;background:#c19a5f;color:#18120b;font:bold 14px Arial,sans-serif;letter-spacing:.5px;cursor:pointer}
+button.secondary{background:transparent;color:#e1bd82;border:1px solid #8b6d42}button:disabled{opacity:.5;cursor:not-allowed}
+.hidden{display:none!important}.small{font:11px Arial,sans-serif;color:#888;margin:25px}.notice{font:14px Arial,sans-serif;color:#e0be87;line-height:1.6;min-height:20px}
+.players-list{text-align:left;list-style:none;padding:0;font:14px Arial,sans-serif}.players-list li{padding:10px;border-bottom:1px solid var(--line)}
+.section{border-top:1px solid var(--line);margin-top:25px;padding-top:20px}.secret{border:1px solid #9c6949;border-radius:7px;padding:17px;margin-top:22px}
+.danger{color:#ff8c80}.result{border:1px solid var(--gold);padding:16px;border-radius:8px;margin-top:15px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #f1c881;outline-offset:2px}
+</style>
+</head>
+<body>
+<main class="container">
+<div class="tag">UN CASO. NESSUNO È INNOCENTE.</div>
+<h1>MURDER FILES</h1><div class="case">CASE 001</div>
+<div class="line"></div>
+<p class="intro">Una serata. Un delitto. Dieci sospettati.<br>La verità è nascosta tra gli indizi.<br>Riuscirete a scoprire chi mente?</p>
+<div id="status" class="notice" role="status"></div>
+<section class="panel" id="entry">
+<input id="nickname" maxlength="20" placeholder="Il tuo nome da investigatore" autocomplete="off">
+<button id="createBtn">CREA UNA STANZA</button>
+<div class="line"></div>
+<input id="roomCode" maxlength="8" placeholder="CODICE DELLA STANZA" autocomplete="off">
+<button class="secondary" id="joinBtn">ENTRA NELLA STANZA</button>
+<p class="intro" style="font-size:13px">Le partite avviate si recuperano automaticamente su questo dispositivo, se le credenziali sono ancora salvate.</p>
+</section>
+<section class="panel hidden" id="lobby">
+<div class="tag">STANZA INVESTIGATIVA</div><h2 id="roomTitle"></h2>
+<p id="welcome" class="intro"></p>
+<button id="copyBtn" class="secondary">COPIA CODICE</button>
+<p id="playerCount" class="notice"></p>
+<ul id="playersList" class="players-list"></ul>
+<p id="lobbyStatus" class="notice"></p>
+<button id="startBtn">INIZIA PARTITA</button>
+</section>
+<section class="panel hidden" id="characterPanel">
+<div class="tag">DOSSIER PERSONALE • RISERVATO</div>
+<h2 id="characterName"></h2>
+<p id="characterDescription" class="intro"></p>
+<h3>LA TUA STORIA SEGRETA</h3><p id="characterStory" class="intro"></p>
+<h3>IL TUO OBIETTIVO</h3><p id="characterObjective" class="intro"></p>
+<div id="secretRole" class="secret"></div>
+<div id="gameArea" class="section">
+<h2 id="phaseTitle"></h2><p id="gameMessage" class="notice"></p>
+<div id="gameControls"></div>
+<div id="dilemmaArea" class="section hidden"></div>
+<div id="gameClues" class="section"></div>
+<div id="voteArea" class="section"></div>
+<div id="verdictArea" class="section"></div>
+</div>
+</section>
+<div class="small">MURDER FILES • CLASSIFIED CASE 001</div>
+</main>
+<script>
+"use strict";
+const db=window.supabase.createClient(
+  "https://bzxygqzsgrjgjarxzedo.supabase.co",
+  "sb_publishable_9gMfKc1fOOYJkgDpyh1n3g_vXOAezed"
+);
+const $=id=>document.getElementById(id);
+const phases={
+stage_1:"1 — LA SCENA DEL CRIMINE",stage_2:"2 — I FASCICOLI SEGRETI",
+stage_3:"3 — LE CARTE INDIZIO",stage_4:"4 — IL DILEMMA DEL PRIGIONIERO",
+stage_5:"5 — LA RICOSTRUZIONE",stage_6:"6 — IL VERDETTO"
+};
+const storageKeys=["murder_player_id","murder_player_token","murder_room_code"];
+let currentCode="",phaseNow="",busy=false,timer=null,loading=false;
+function notice(msg){$("status").textContent=msg||""}
+function gameMessage(msg){$("gameMessage").textContent=msg||""}
+function credentials(){
+ return {p_player_id:sessionStorage.getItem(storageKeys[0])||localStorage.getItem(storageKeys[0]),
+ p_access_token:sessionStorage.getItem(storageKeys[1])||localStorage.getItem(storageKeys[1])};
+}
+function storedCode(){return sessionStorage.getItem(storageKeys[2])||localStorage.getItem(storageKeys[2])}
+function storeSession(data){
+ const values=[data.player_id,data.player_token,data.room_code];
+ storageKeys.forEach((key,i)=>{sessionStorage.setItem(key,values[i]);localStorage.setItem(key,values[i])});
+ currentCode=data.room_code;
+}
+function clearSession(){
+ storageKeys.forEach(k=>{sessionStorage.removeItem(k);localStorage.removeItem(k)});
+ currentCode="";stopPolling();phaseNow="";
+}
+function showSection(section){
+ for(const id of ["entry","lobby","characterPanel"])$(id).classList.toggle("hidden",id!==section);
+}
+function el(tag,text,cls){
+ const node=document.createElement(tag);
+ if(text!==undefined)node.textContent=text;
+ if(cls)node.className=cls;
+ return node;
+}
+function button(text,callback,secondary=false){
+ const b=el("button",text,secondary?"secondary":"");b.addEventListener("click",callback);return b;
+}
+async function rpc(name,args){
+ const {data,error}=await db.rpc(name,args);
+ if(error)throw new Error(error.message||"Errore di comunicazione");
+ return data;
+}
+function stopPolling(){if(timer){clearInterval(timer);timer=null}}
+function startPolling(){
+ stopPolling();timer=setInterval(()=>{
+ if(!document.hidden)refreshGame().catch(e=>gameMessage(e.message));
+ },5000);
+}
+async function createRoom(){
+ if(busy)return;
+ const nickname=$("nickname").value.trim();
+ if(nickname.length<2)return notice("Inserisci un nickname di almeno 2 caratteri.");
+ busy=true;notice("Creazione stanza...");
+ try{const data=await rpc("create_game_room",{p_nickname:nickname});await enterLobby(data,nickname)}
+ catch(e){notice(e.message)}finally{busy=false}
+}
+async function joinRoom(){
+ if(busy)return;
+ const nickname=$("nickname").value.trim(),code=$("roomCode").value.trim().toUpperCase();
+ if(nickname.length<2)return notice("Inserisci un nickname di almeno 2 caratteri.");
+ if(code.length<4)return notice("Inserisci un codice stanza valido.");
+ busy=true;notice("Accesso alla stanza...");
+ try{const data=await rpc("join_game_room",{p_code:code,p_nickname:nickname});await enterLobby(data,nickname)}
+ catch(e){notice(e.message)}finally{busy=false}
+}
+async function enterLobby(data,nickname){
+ if(!data?.room_code||!data.player_id||!data.player_token)throw new Error("Risposta stanza incompleta");
+ storeSession(data);notice("");$("roomTitle").textContent=currentCode;
+ $("welcome").textContent="Benvenuta, "+nickname+". Sei entrata nel caso.";
+ showSection("lobby");await refreshLobby();
+ if(!$("characterPanel").classList.contains("hidden"))return;
+ stopPolling();timer=setInterval(()=>refreshLobby().catch(e=>$("lobbyStatus").textContent=e.message),5000);
+}
+async function refreshLobby(){
+ if(!currentCode)return;
+ const state=await rpc("get_room_game_status",{p_room_code:currentCode});
+ if(state?.started){stopPolling();await showMyCharacter();return}
+ const players=await rpc("get_room_players",{p_room_code:currentCode});
+ $("playerCount").textContent=(players||[]).length+" / 10 investigatori";
+ $("playersList").replaceChildren(...(players||[]).map(p=>el("li","◆ "+p.nickname)));
+ $("lobbyStatus").textContent=(players||[]).length>=9?"Pronti per iniziare.":"In attesa di almeno 9 investigatori.";
+}
+async function startGame(){
+ const b=$("startBtn");b.disabled=true;
+ try{
+ await rpc("start_game",{p_room_code:currentCode,...credentials()});
+ await showMyCharacter();
+ }catch(e){$("lobbyStatus").textContent=e.message;b.disabled=false}
+}
+async function restoreSession(){
+ const c=credentials(),code=storedCode();
+ if(!c.p_player_id||!c.p_access_token||!code)return;
+ notice("Recupero della partita in corso...");
+ try{
+ const state=await rpc("get_my_game_phase",c);
+ currentCode=code;
+ if(state?.started||/^stage_[1-6]$/.test(state?.phase||"")){
+   await showMyCharacter();notice("");return;
+ }
+ $("roomTitle").textContent=code;
+ $("welcome").textContent="Sessione recuperata.";
+ showSection("lobby");await refreshLobby();
+ if(!$("lobby").classList.contains("hidden")){
+   stopPolling();timer=setInterval(()=>refreshLobby().catch(()=>{}),5000);
+ }
+ notice("");
+ }catch(e){
+ notice("Impossibile ripristinare la sessione: "+e.message+". Non creare un duplicato del tuo giocatore.");
+ }
+}
+async function showMyCharacter(){
+ if(loading)return;
+ loading=true;
+ try{
+ const c=credentials();
+ const [character,secret]=await Promise.all([
+ rpc("get_my_character",c),rpc("get_my_secret_role",c)
+ ]);
+ if(!character)throw new Error("Personaggio non disponibile.");
+ $("characterName").textContent=character.character_name||"PERSONAGGIO SEGRETO";
+ $("characterDescription").textContent=character.description||"";
+ $("characterStory").textContent=character.private_story||"";
+ $("characterObjective").textContent=character.secret_objective||"";
+ const role=$("secretRole");role.replaceChildren();
+ role.append(el("h2","IL TUO RUOLO SEGRETO"),el("p",secret?.message||"Ruolo non disponibile.","intro"));
+ if(secret?.is_culprit&&secret.dossier){
+ role.appendChild(el("h3","DOSSIER RISERVATO — ASSASSINO","danger"));
+ for(const [title,key] of [
+ ["IL TUO MOVENTE","movente"],["COME HAI COMMESSO IL DELITTO","dinamica"],
+ ["IL TUO FALSO ALIBI","alibi"],["LA PROVA CHE PUÒ INCASTRARTI","punto_debole"],
+ ["LA TUA MISSIONE","obiettivo"]
+ ]){role.append(el("h3",title),el("p",secret.dossier[key]||"","intro"))}
+ role.append(el("p","TOP SECRET — Non mostrare agli altri giocatori.","danger"));
+ }
+ stopPolling();showSection("characterPanel");phaseNow="";
+ await refreshGame();startPolling();
+ }catch(e){notice("Impossibile caricare la partita: "+e.message)}
+ finally{loading=false}
+}
+async function refreshGame(){
+ if(busy)return;
+ busy=true;
+ try{
+ const state=await rpc("get_my_game_phase",credentials());
+ if(!state?.phase)throw new Error("Fase non disponibile");
+ const phase=state.phase,changed=phase!==phaseNow;
+ if(changed){
+ phaseNow=phase;
+ $("phaseTitle").textContent=phases[phase]||"INDAGINE IN CORSO";
+ $("dilemmaArea").classList.toggle("hidden",phase!=="stage_4");
+ $("dilemmaArea").replaceChildren();
+ $("dilemmaArea").dataset.mode="";
+ $("voteArea").replaceChildren();$("verdictArea").replaceChildren();
+ await loadPhaseClues();
+ }
+ const controls=$("gameControls");
+ if(changed||!controls.hasChildNodes()){
+ controls.replaceChildren();
+ if(state.is_host&&phase!=="stage_6"){
+ controls.appendChild(button("SBLOCCA FASE SUCCESSIVA",async()=>{
+ if(!confirm("Passare alla fase successiva per tutti i giocatori?"))return;
+ try{
+ await rpc("advance_game_phase",{p_room_code:currentCode||storedCode(),...credentials()});
+ phaseNow="";await refreshGameAfterAction();
+ }catch(e){gameMessage(e.message)}
+ }));
+ }
+ }
+ if(phase==="stage_4")await loadDilemma();
+ if(phase==="stage_6")await loadVerdict(Boolean(state.is_host));
+ }catch(e){gameMessage(e.message)}
+ finally{busy=false}
+}
+async function refreshGameAfterAction(){busy=false;await refreshGame()}
+async function loadPhaseClues(){
+ const target=$("gameClues");target.replaceChildren(el("h2","FASCICOLO INVESTIGATIVO"));
+ const clues=await rpc("get_game_clues",credentials());
+ if(!clues?.length){target.append(el("p","Nessun indizio disponibile.","intro"));return}
+ for(const clue of clues){target.append(el("h3",clue.title),el("p",clue.content,"intro"))}
+}
+async function loadDilemma(){
+ const area=$("dilemmaArea");
+ const assignment=await rpc("get_my_dilemma_assignment",credentials());
+ if(assignment?.status==="joker"){
+ if(area.dataset.mode==="joker")return;
+ area.dataset.mode="joker";area.replaceChildren(
+ el("h2","♠ IL JOLLY — L'OSSERVATORE"),
+ el("p","Non hai un avversario diretto. Ricevi 2 punti.","intro"));
+ return;
+ }
+ if(assignment?.status!=="paired"){
+ if(area.dataset.mode!=="unavailable"){area.dataset.mode="unavailable";area.replaceChildren(el("p","Abbinamento non disponibile.","intro"))}
+ return;
+ }
+ const result=await rpc("get_my_dilemma_result",credentials());
+ const mode=result?.status==="completed"?"completed":
+ result?.has_chosen?"waiting":"choosing";
+ if(area.dataset.mode===mode)return;
+ area.dataset.mode=mode;
+ area.replaceChildren(el("h2","♠ IL DILEMMA DEL PRIGIONIERO"),
+ el("p","Il tuo avversario è: "+assignment.opponent,"intro"));
+ if(mode==="completed"){
+ area.append(el("p","La tua scelta: "+(result.my_choice==="cooperate"?"COLLABORA":"TRADISCI")+
+ " — Scelta avversaria: "+(result.opponent_choice==="cooperate"?"COLLABORA":"TRADISCI"),"intro"),
+ el("h3","Tu: "+result.my_points+" punti — Avversario: "+result.opponent_points+" punti","result"));
+ return;
+ }
+ if(mode==="waiting"){
+ area.append(el("p","Decisione registrata. Attendi il tuo avversario.","intro"));return;
+ }
+ area.append(el("p","La scelta è segreta e definitiva.","intro"));
+ async function choose(choice){
+ if(!confirm("Confermi la decisione definitiva?"))return;
+ const buttons=area.querySelectorAll("button");buttons.forEach(b=>b.disabled=true);
+ try{
+ await rpc("submit_dilemma_choice",{...credentials(),p_choice:choice});
+ area.dataset.mode="";await loadDilemma();
+ }catch(e){gameMessage(e.message);buttons.forEach(b=>b.disabled=false)}
+ }
+ area.append(button("🤝 COLLABORA",()=>choose("cooperate")),
+ button("🎭 TRADISCI",()=>choose("betray"),true));
+}
+async function loadVerdict(isHost){
+ const vote=$("voteArea"),final=$("verdictArea");
+ const verdict=await rpc("get_case_verdict",credentials());
+ if(verdict?.revealed){
+ vote.replaceChildren();final.replaceChildren(el("h2","IL COLPEVOLE È..."),
+ el("h1",verdict.culprit||"SCONOSCIUTO"),el("h3","RISULTATI DELLE ACCUSE"));
+ for(const result of verdict.results||[])if(result.votes)final.append(el("p",result.name+": "+result.votes+" voti"));
+ return;
+ }
+ if(verdict?.has_voted){
+ if(vote.dataset.mode!=="voted"){vote.dataset.mode="voted";vote.replaceChildren(el("p","Voto registrato. In attesa del verdetto.","intro"))}
+ }else if(vote.dataset.mode!=="voting"){
+ vote.dataset.mode="voting";vote.replaceChildren(el("h3","CHI HA UCCISO ADRIANO VALENTI?"));
+ const select=el("select");select.setAttribute("aria-label","Sospettato");
+ const suspects=await rpc("get_case_suspects",credentials());
+ for(const s of suspects||[]){const option=el("option",s.name);option.value=s.id;select.appendChild(option)}
+ vote.append(select,button("CONFERMA ACCUSA DEFINITIVA",async()=>{
+ if(!confirm("Confermi l'accusa definitiva?"))return;
+ try{await rpc("cast_case_vote",{...credentials(),p_suspect_id:select.value});
+ vote.dataset.mode="";await loadVerdict(isHost)}
+ catch(e){gameMessage(e.message)}
+ }));
+ }
+ if(isHost){
+ gameMessage("Voti ricevuti: "+verdict.votes_cast+"/"+verdict.players_total);
+ if(!$("revealButton")){
+ const reveal=button("RIVELA L'ASSASSINO",async()=>{
+ try{await rpc("reveal_case_verdict",credentials());await loadVerdict(true)}
+ catch(e){gameMessage(e.message)}
+ },true);
+ reveal.id="revealButton";vote.append(reveal);
+ }
+ }
+}
+$("createBtn").addEventListener("click",createRoom);
+$("joinBtn").addEventListener("click",joinRoom);
+$("startBtn").addEventListener("click",startGame);
+$("copyBtn").addEventListener("click",async()=>{
+ try{await navigator.clipboard.writeText(currentCode);$("lobbyStatus").textContent="Codice copiato!"}
+ catch(e){$("lobbyStatus").textContent="Codice: "+currentCode}
+});
+restoreSession();
+</script>
+</body>
+</html>
