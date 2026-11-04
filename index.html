@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -8,30 +7,18 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{color-scheme:dark;--gold:#c9a46a;--line:#584a36}
-*{box-sizing:border-box}
-body{margin:0;background:#101014;color:#eee;font-family:Georgia,serif;min-height:100vh;padding:24px 16px}
-.container{max-width:620px;margin:0 auto;text-align:center}
-.tag{font:12px Arial,sans-serif;letter-spacing:4px;color:var(--gold)}
-h1{font-size:clamp(31px,7vw,44px);letter-spacing:3px;margin:16px 0 6px}
-h2{font-size:23px;line-height:1.3}
-h3{font-size:18px}
-.case{font:13px Arial,sans-serif;letter-spacing:4px;color:var(--gold)}
-.line{height:1px;background:var(--line);margin:24px 0}
-.intro{color:#c2bcb5;line-height:1.65;font-size:16px;white-space:pre-line}
-.panel{background:#1b1b22;border:1px solid var(--line);padding:24px 20px;border-radius:9px;margin:24px 0}
+*{box-sizing:border-box}body{margin:0;background:#101014;color:#eee;font-family:Georgia,serif;min-height:100vh;padding:24px 16px}
+.container{max-width:620px;margin:0 auto;text-align:center}.tag{font:12px Arial,sans-serif;letter-spacing:4px;color:var(--gold)}
+h1{font-size:clamp(31px,7vw,44px);letter-spacing:3px;margin:16px 0 6px}h2{font-size:23px;line-height:1.3}h3{font-size:18px}
+.case{font:13px Arial,sans-serif;letter-spacing:4px;color:var(--gold)}.line{height:1px;background:var(--line);margin:24px 0}
+.intro{color:#c2bcb5;line-height:1.65;font-size:16px;white-space:pre-line}.panel{background:#1b1b22;border:1px solid var(--line);padding:24px 20px;border-radius:9px;margin:24px 0}
 input,select{width:100%;padding:14px;margin:8px 0;background:#101014;border:1px solid #78674e;color:white;border-radius:5px;font-size:16px}
 button{width:100%;padding:15px;margin-top:12px;border:0;border-radius:5px;background:#c19a5f;color:#18120b;font:bold 14px Arial,sans-serif;letter-spacing:.5px;cursor:pointer}
-button.secondary{background:transparent;color:#e1bd82;border:1px solid #8b6d42}
-button:disabled{opacity:.5;cursor:not-allowed}
-.hidden{display:none!important}
-.small{font:11px Arial,sans-serif;color:#888;margin:25px}
-.notice{font:14px Arial,sans-serif;color:#e0be87;line-height:1.6;min-height:20px}
-.players-list{text-align:left;list-style:none;padding:0;font:14px Arial,sans-serif}
-.players-list li{padding:10px;border-bottom:1px solid var(--line)}
-.section{border-top:1px solid var(--line);margin-top:25px;padding-top:20px}
-.secret{border:1px solid #9c6949;border-radius:7px;padding:17px;margin-top:22px}
-.danger{color:#ff8c80}
-.result{border:1px solid var(--gold);padding:16px;border-radius:8px;margin-top:15px}
+button.secondary{background:transparent;color:#e1bd82;border:1px solid #8b6d42}button:disabled{opacity:.5;cursor:not-allowed}
+.hidden{display:none!important}.small{font:11px Arial,sans-serif;color:#888;margin:25px}.notice{font:14px Arial,sans-serif;color:#e0be87;line-height:1.6;min-height:20px}
+.players-list{text-align:left;list-style:none;padding:0;font:14px Arial,sans-serif}.players-list li{padding:10px;border-bottom:1px solid var(--line)}
+.section{border-top:1px solid var(--line);margin-top:25px;padding-top:20px}.secret{border:1px solid #9c6949;border-radius:7px;padding:17px;margin-top:22px}
+.danger{color:#ff8c80}.result{border:1px solid var(--gold);padding:16px;border-radius:8px;margin-top:15px}
 button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #f1c881;outline-offset:2px}
 .phase-progress{display:flex;justify-content:center;gap:8px;margin:0 0 18px}
 .phase-progress span{width:30px;height:30px;display:grid;place-items:center;border:1px solid #615039;border-radius:50%;font:12px Arial;color:#9e9281}
@@ -46,27 +33,21 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 #rewardArea h3{color:#dfbb83}
 #verdictArea h1{color:#d8b479;letter-spacing:2px}
 button:not(:disabled):active{transform:scale(.99)}
-@media(prefers-reduced-motion:no-preference){
-.panel{animation:fadeUp .35s ease both}
-@keyframes fadeUp{
-from{opacity:.5;transform:translateY(7px)}
-to{opacity:1;transform:translateY(0)}
-}
-}
+@media(prefers-reduced-motion:no-preference){.panel{animation:fadeUp .35s ease both}@keyframes fadeUp{from{opacity:.5;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}}
+#interrogationArea,#notesArea{padding:18px;border:1px solid #615039;border-radius:8px;background:#16161c;margin-top:18px}
+#interrogationArea .prompt{font-size:18px;line-height:1.55;color:#e5c18a}
+#notesArea textarea{width:100%;min-height:140px;padding:12px;background:#0f1015;color:#eee;border:1px solid #74654f;border-radius:6px;font:15px Arial;resize:vertical}
+#notesArea .hint{font:12px Arial;color:#b5a899;line-height:1.5}
+#verdictArea.revealed{background:radial-gradient(ellipse at top,#3b281c,#15151b 75%);padding:24px 12px;border:1px solid #a17b4b;border-radius:8px;animation:fadeUp .7s ease both}
 </style>
 </head>
 <body>
 <main class="container">
 <div class="tag">UN CASO. NESSUNO È INNOCENTE.</div>
-<h1>MURDER FILES</h1>
-<div class="case">CASE 001</div>
+<h1>MURDER FILES</h1><div class="case">CASE 001</div>
 <div class="line"></div>
-<p class="intro">Una serata. Un delitto. Dieci sospettati.
-La verità è nascosta tra gli indizi.
-Riuscirete a scoprire chi mente?</p>
-
+<p class="intro">Una serata. Un delitto. Dieci sospettati.<br>La verità è nascosta tra gli indizi.<br>Riuscirete a scoprire chi mente?</p>
 <div id="status" class="notice" role="status"></div>
-
 <section class="panel" id="entry">
 <input id="nickname" maxlength="20" placeholder="Il tuo nome da investigatore" autocomplete="off">
 <button id="createBtn">CREA UNA STANZA</button>
@@ -75,10 +56,8 @@ Riuscirete a scoprire chi mente?</p>
 <button class="secondary" id="joinBtn">ENTRA NELLA STANZA</button>
 <p class="intro" style="font-size:13px">Le partite avviate si recuperano automaticamente su questo dispositivo, se le credenziali sono ancora salvate.</p>
 </section>
-
 <section class="panel hidden" id="lobby">
-<div class="tag">STANZA INVESTIGATIVA</div>
-<h2 id="roomTitle"></h2>
+<div class="tag">STANZA INVESTIGATIVA</div><h2 id="roomTitle"></h2>
 <p id="welcome" class="intro"></p>
 <button id="copyBtn" class="secondary">COPIA CODICE</button>
 <p id="playerCount" class="notice"></p>
@@ -86,53 +65,41 @@ Riuscirete a scoprire chi mente?</p>
 <p id="lobbyStatus" class="notice"></p>
 <button id="startBtn">INIZIA PARTITA</button>
 </section>
-
 <section class="panel hidden" id="characterPanel">
 <div class="tag">DOSSIER PERSONALE • RISERVATO</div>
 <h2 id="characterName"></h2>
 <p id="characterDescription" class="intro"></p>
-<h3>LA TUA STORIA SEGRETA</h3>
-<p id="characterStory" class="intro"></p>
-<h3>IL TUO OBIETTIVO</h3>
-<p id="characterObjective" class="intro"></p>
+<h3>LA TUA STORIA SEGRETA</h3><p id="characterStory" class="intro"></p>
+<h3>IL TUO OBIETTIVO</h3><p id="characterObjective" class="intro"></p>
 <div id="secretRole" class="secret"></div>
-
 <div id="gameArea" class="section">
 <div id="phaseProgress" class="phase-progress" aria-label="Avanzamento delle fasi"></div>
-<h2 id="phaseTitle"></h2>
-<p id="phaseBriefing" class="intro"></p>
-<p id="gameMessage" class="notice"></p>
+<h2 id="phaseTitle"></h2><p id="phaseBriefing" class="intro"></p><p id="gameMessage" class="notice"></p>
 <div id="gameControls"></div>
 <div id="dilemmaArea" class="section hidden"></div>
+<div id="interrogationArea" class="section hidden"></div>
+<div id="notesArea" class="section hidden"></div>
 <div id="gameClues" class="section"></div>
 <div id="rewardArea" class="section hidden" aria-live="polite"></div>
 <div id="voteArea" class="section"></div>
 <div id="verdictArea" class="section"></div>
 </div>
 </section>
-
 <div class="small">MURDER FILES • CLASSIFIED CASE 001</div>
 </main>
-
 <script>
 "use strict";
-
 const db=window.supabase.createClient(
-"https://bzxygqzsgrjgjarxzedo.supabase.co",
-"sb_publishable_9gMfKc1fOOYJkgDpyh1n3g_vXOAezed"
+  "https://bzxygqzsgrjgjarxzedo.supabase.co",
+  "sb_publishable_9gMfKc1fOOYJkgDpyh1n3g_vXOAezed"
 );
-
 const $=id=>document.getElementById(id);
-
 const phases={
-stage_1:"1 — LA SCENA DEL CRIMINE",
-stage_2:"2 — I FASCICOLI SEGRETI",
-stage_3:"3 — LE CARTE INDIZIO",
-stage_4:"4 — IL DILEMMA DEL PRIGIONIERO",
-stage_5:"5 — LA RICOSTRUZIONE",
-stage_6:"6 — IL VERDETTO"
+stage_1:"1 — LA SCENA DEL CRIMINE",stage_2:"2 — I FASCICOLI SEGRETI",
+stage_3:"3 — LE CARTE INDIZIO",stage_4:"4 — IL DILEMMA DEL PRIGIONIERO",
+stage_5:"5 — LA RICOSTRUZIONE",stage_6:"6 — IL VERDETTO"
 };
-
+const storageKeys=["murder_player_id","murder_player_token","murder_room_code"];
 const phaseBriefings={
 stage_1:"Esamina la scena del crimine. Leggi gli indizi disponibili e annota ciò che non torna.",
 stage_2:"Apri il tuo dossier personale. Puoi raccontare la verità, mentire o proteggere i tuoi segreti.",
@@ -141,762 +108,339 @@ stage_4:"Un avversario. Due scelte. Nessuna certezza. Collabora oppure tradisci:
 stage_5:"Ricostruite insieme il movente, l'occasione e la dinamica. L'assassino potrebbe manipolare la ricostruzione.",
 stage_6:"Formula la tua accusa definitiva. Il verdetto sarà rivelato dopo la votazione."
 };
-
-const storageKeys=[
-"murder_player_id",
-"murder_player_token",
-"murder_room_code"
-];
-
-let currentCode="";
-let phaseNow="";
-let busy=false;
-let timer=null;
-let loading=false;
-
-function notice(msg){
-$("status").textContent=msg||"";
-}
-
-function gameMessage(msg){
-$("gameMessage").textContent=msg||"";
-}
-
-function credentials(){
-return {
-p_player_id:sessionStorage.getItem(storageKeys[0])||localStorage.getItem(storageKeys[0]),
-p_access_token:sessionStorage.getItem(storageKeys[1])||localStorage.getItem(storageKeys[1])
+let currentCode="",phaseNow="",busy=false,timer=null,loading=false;
+const interrogationPrompts={
+ stage_1:["Qual è il dettaglio della scena che nessuno riesce a spiegare?","Chi avrebbe potuto trovarsi vicino alla vittima senza destare sospetti?"],
+ stage_2:["Racconta dove ti trovavi prima del delitto. Quale parte stai omettendo?","Chi può confermare il tuo alibi? E perché dovrebbe difenderti?","Quale segreto non vuoi che gli altri scoprano?"],
+ stage_3:["Quale indizio contraddice un alibi?","Chi ha tratto vantaggio dalla morte della vittima?","Quale prova potrebbe essere stata costruita per incastrare qualcuno?"],
+ stage_5:["Tutti indicano un movente: chi aveva anche l'occasione?","Ricostruite gli ultimi dieci minuti prima del delitto.","Scegliete il sospettato con la storia più contraddittoria e interrogatelo.","Ogni giocatore dichiari il proprio sospetto senza poterlo cambiare durante il giro."],
+ stage_6:["Prima di votare: chi aveva movente, mezzi e opportunità?","L'assassino potrebbe essere proprio chi ha guidato l'indagine."]
 };
+let promptIndex=0;
+function notice(msg){$("status").textContent=msg||""}
+function gameMessage(msg){$("gameMessage").textContent=msg||""}
+function credentials(){
+ return {p_player_id:sessionStorage.getItem(storageKeys[0])||localStorage.getItem(storageKeys[0]),
+ p_access_token:sessionStorage.getItem(storageKeys[1])||localStorage.getItem(storageKeys[1])};
 }
-
-function storedCode(){
-return sessionStorage.getItem(storageKeys[2])||localStorage.getItem(storageKeys[2]);
-}
-
+function storedCode(){return sessionStorage.getItem(storageKeys[2])||localStorage.getItem(storageKeys[2])}
 function storeSession(data){
-const values=[data.player_id,data.player_token,data.room_code];
-storageKeys.forEach((key,i)=>{
-sessionStorage.setItem(key,values[i]);
-localStorage.setItem(key,values[i]);
-});
-currentCode=data.room_code;
+ const values=[data.player_id,data.player_token,data.room_code];
+ storageKeys.forEach((key,i)=>{sessionStorage.setItem(key,values[i]);localStorage.setItem(key,values[i])});
+ currentCode=data.room_code;
 }
-
 function clearSession(){
-storageKeys.forEach(k=>{
-sessionStorage.removeItem(k);
-localStorage.removeItem(k);
-});
-currentCode="";
-stopPolling();
-phaseNow="";
+ storageKeys.forEach(k=>{sessionStorage.removeItem(k);localStorage.removeItem(k)});
+ currentCode="";stopPolling();phaseNow="";
 }
-
 function showSection(section){
-for(const id of ["entry","lobby","characterPanel"]){
-$(id).classList.toggle("hidden",id!==section);
+ for(const id of ["entry","lobby","characterPanel"])$(id).classList.toggle("hidden",id!==section);
 }
-}
-
 function el(tag,text,cls){
-const node=document.createElement(tag);
-if(text!==undefined)node.textContent=text;
-if(cls)node.className=cls;
-return node;
+ const node=document.createElement(tag);
+ if(text!==undefined)node.textContent=text;
+ if(cls)node.className=cls;
+ return node;
 }
-
 function button(text,callback,secondary=false){
-const b=el("button",text,secondary?"secondary":"");
-b.addEventListener("click",callback);
-return b;
+ const b=el("button",text,secondary?"secondary":"");b.addEventListener("click",callback);return b;
 }
-
 async function rpc(name,args){
-const {data,error}=await db.rpc(name,args);
-if(error)throw new Error(error.message||"Errore di comunicazione");
-return data;
+ const {data,error}=await db.rpc(name,args);
+ if(error)throw new Error(error.message||"Errore di comunicazione");
+ return data;
 }
-
-function stopPolling(){
-if(timer){
-clearInterval(timer);
-timer=null;
-}
-}
-
+function stopPolling(){if(timer){clearInterval(timer);timer=null}}
 function startPolling(){
-stopPolling();
-timer=setInterval(()=>{
-if(!document.hidden){
-refreshGame().catch(e=>gameMessage(e.message));
+ stopPolling();timer=setInterval(()=>{
+ if(!document.hidden)refreshGame().catch(e=>gameMessage(e.message));
+ },5000);
 }
-},5000);
-}
-
 async function createRoom(){
-if(busy)return;
-const nickname=$("nickname").value.trim();
-if(nickname.length<2){
-return notice("Inserisci un nickname di almeno 2 caratteri.");
+ if(busy)return;
+ const nickname=$("nickname").value.trim();
+ if(nickname.length<2)return notice("Inserisci un nickname di almeno 2 caratteri.");
+ busy=true;notice("Creazione stanza...");
+ try{const data=await rpc("create_game_room",{p_nickname:nickname});await enterLobby(data,nickname)}
+ catch(e){notice(e.message)}finally{busy=false}
 }
-busy=true;
-notice("Creazione stanza...");
-try{
-const data=await rpc("create_game_room",{p_nickname:nickname});
-await enterLobby(data,nickname);
-}catch(e){
-notice(e.message);
-}finally{
-busy=false;
-}
-}
-
 async function joinRoom(){
-if(busy)return;
-const nickname=$("nickname").value.trim();
-const code=$("roomCode").value.trim().toUpperCase();
-if(nickname.length<2){
-return notice("Inserisci un nickname di almeno 2 caratteri.");
+ if(busy)return;
+ const nickname=$("nickname").value.trim(),code=$("roomCode").value.trim().toUpperCase();
+ if(nickname.length<2)return notice("Inserisci un nickname di almeno 2 caratteri.");
+ if(code.length<4)return notice("Inserisci un codice stanza valido.");
+ busy=true;notice("Accesso alla stanza...");
+ try{const data=await rpc("join_game_room",{p_code:code,p_nickname:nickname});await enterLobby(data,nickname)}
+ catch(e){notice(e.message)}finally{busy=false}
 }
-if(code.length<4){
-return notice("Inserisci un codice stanza valido.");
-}
-busy=true;
-notice("Accesso alla stanza...");
-try{
-const data=await rpc("join_game_room",{
-p_code:code,
-p_nickname:nickname
-});
-await enterLobby(data,nickname);
-}catch(e){
-notice(e.message);
-}finally{
-busy=false;
-}
-}
-
 async function enterLobby(data,nickname){
-if(!data?.room_code||!data.player_id||!data.player_token){
-throw new Error("Risposta stanza incompleta");
+ if(!data?.room_code||!data.player_id||!data.player_token)throw new Error("Risposta stanza incompleta");
+ storeSession(data);notice("");$("roomTitle").textContent=currentCode;
+ $("welcome").textContent="Benvenuta, "+nickname+". Sei entrata nel caso.";
+ showSection("lobby");await refreshLobby();
+ if(!$("characterPanel").classList.contains("hidden"))return;
+ stopPolling();timer=setInterval(()=>refreshLobby().catch(e=>$("lobbyStatus").textContent=e.message),5000);
 }
-storeSession(data);
-notice("");
-$("roomTitle").textContent=currentCode;
-$("welcome").textContent="Benvenuta, "+nickname+". Sei entrata nel caso.";
-showSection("lobby");
-await refreshLobby();
-
-if(!$("characterPanel").classList.contains("hidden"))return;
-
-stopPolling();
-timer=setInterval(()=>{
-refreshLobby().catch(e=>{
-$("lobbyStatus").textContent=e.message;
-});
-},5000);
-}
-
 async function refreshLobby(){
-if(!currentCode)return;
-
-const state=await rpc("get_room_game_status",{
-p_room_code:currentCode
-});
-
-if(state?.started){
-stopPolling();
-await showMyCharacter();
-return;
+ if(!currentCode)return;
+ const state=await rpc("get_room_game_status",{p_room_code:currentCode});
+ if(state?.started){stopPolling();await showMyCharacter();return}
+ const players=await rpc("get_room_players",{p_room_code:currentCode});
+ $("playerCount").textContent=(players||[]).length+" / 10 investigatori";
+ $("playersList").replaceChildren(...(players||[]).map(p=>el("li","◆ "+p.nickname)));
+ $("lobbyStatus").textContent=(players||[]).length>=9?"Pronti per iniziare.":"In attesa di almeno 9 investigatori.";
 }
-
-const players=await rpc("get_room_players",{
-p_room_code:currentCode
-});
-
-const list=$("playersList");
-list.replaceChildren();
-
-for(const player of players||[]){
-list.appendChild(el("li","♠ "+player.nickname));
-}
-
-$("playerCount").textContent=
-"INVESTIGATORI: "+(players||[]).length+"/10";
-
-$("startBtn").disabled=(players||[]).length<9;
-
-$("lobbyStatus").textContent=
-(players||[]).length>=9
-?"Pronti per iniziare."
-:"In attesa di almeno 9 investigatori.";
-}
-
 async function startGame(){
-const b=$("startBtn");
-b.disabled=true;
-
-try{
-await rpc("start_game",{
-p_room_code:currentCode,
-...credentials()
-});
-await showMyCharacter();
-}catch(e){
-$("lobbyStatus").textContent=e.message;
-b.disabled=false;
+ const b=$("startBtn");b.disabled=true;
+ try{
+ await rpc("start_game",{p_room_code:currentCode,...credentials()});
+ await showMyCharacter();
+ }catch(e){$("lobbyStatus").textContent=e.message;b.disabled=false}
 }
-}
-
 async function restoreSession(){
-const c=credentials();
-const code=storedCode();
-
-if(!c.p_player_id||!c.p_access_token||!code)return;
-
-notice("Recupero della partita in corso...");
-
-try{
-const state=await rpc("get_my_game_phase",c);
-currentCode=code;
-
-if(state?.started||/^stage_[1-6]$/.test(state?.phase||"")){
-await showMyCharacter();
-notice("");
-return;
+ const c=credentials(),code=storedCode();
+ if(!c.p_player_id||!c.p_access_token||!code)return;
+ notice("Recupero della partita in corso...");
+ try{
+ const state=await rpc("get_my_game_phase",c);
+ currentCode=code;
+ if(state?.started||/^stage_[1-6]$/.test(state?.phase||"")){
+   await showMyCharacter();notice("");return;
+ }
+ $("roomTitle").textContent=code;
+ $("welcome").textContent="Sessione recuperata.";
+ showSection("lobby");await refreshLobby();
+ if(!$("lobby").classList.contains("hidden")){
+   stopPolling();timer=setInterval(()=>refreshLobby().catch(()=>{}),5000);
+ }
+ notice("");
+ }catch(e){
+ notice("Impossibile ripristinare la sessione: "+e.message+". Non creare un duplicato del tuo giocatore.");
+ }
 }
-
-$("roomTitle").textContent=code;
-$("welcome").textContent="Sessione recuperata.";
-showSection("lobby");
-await refreshLobby();
-
-if(!$("lobby").classList.contains("hidden")){
-stopPolling();
-timer=setInterval(()=>{
-refreshLobby().catch(()=>{});
-},5000);
-}
-
-notice("");
-}catch(e){
-notice("Impossibile ripristinare la sessione: "+e.message+". Non creare un duplicato del tuo giocatore.");
-}
-}
-
 async function showMyCharacter(){
-if(loading)return;
-loading=true;
-
-try{
-const c=credentials();
-
-const [character,secret]=await Promise.all([
-rpc("get_my_character",c),
-rpc("get_my_secret_role",c)
-]);
-
-if(!character){
-throw new Error("Personaggio non disponibile.");
+ if(loading)return;
+ loading=true;
+ try{
+ const c=credentials();
+ const [character,secret]=await Promise.all([
+ rpc("get_my_character",c),rpc("get_my_secret_role",c)
+ ]);
+ if(!character)throw new Error("Personaggio non disponibile.");
+ $("characterName").textContent=character.character_name||"PERSONAGGIO SEGRETO";
+ $("characterDescription").textContent=character.description||"";
+ $("characterStory").textContent=character.private_story||"";
+ $("characterObjective").textContent=character.secret_objective||"";
+ const role=$("secretRole");role.replaceChildren();
+ role.append(el("h2","IL TUO RUOLO SEGRETO"),el("p",secret?.message||"Ruolo non disponibile.","intro"));
+ if(secret?.is_culprit&&secret.dossier){
+ role.appendChild(el("h3","DOSSIER RISERVATO — ASSASSINO","danger"));
+ for(const [title,key] of [
+ ["IL TUO MOVENTE","movente"],["COME HAI COMMESSO IL DELITTO","dinamica"],
+ ["IL TUO FALSO ALIBI","alibi"],["LA PROVA CHE PUÒ INCASTRARTI","punto_debole"],
+ ["LA TUA MISSIONE","obiettivo"]
+ ]){role.append(el("h3",title),el("p",secret.dossier[key]||"","intro"))}
+ role.append(el("p","TOP SECRET — Non mostrare agli altri giocatori.","danger"));
+ }
+ stopPolling();showSection("characterPanel");phaseNow="";
+ await refreshGame();startPolling();
+ }catch(e){notice("Impossibile caricare la partita: "+e.message)}
+ finally{loading=false}
 }
-
-$("characterName").textContent=
-character.character_name||"PERSONAGGIO SEGRETO";
-
-$("characterDescription").textContent=
-character.description||"";
-
-$("characterStory").textContent=
-character.private_story||"";
-
-$("characterObjective").textContent=
-character.secret_objective||"";
-
-const role=$("secretRole");
-role.replaceChildren();
-
-role.append(
-el("h2","IL TUO RUOLO SEGRETO"),
-el("p",secret?.message||"Ruolo non disponibile.","intro")
-);
-
-if(secret?.is_culprit&&secret.dossier){
-role.appendChild(
-el("h3","DOSSIER RISERVATO — ASSASSINO","danger")
-);
-
-for(const [title,key] of [
-["IL TUO MOVENTE","movente"],
-["COME HAI COMMESSO IL DELITTO","dinamica"],
-["IL TUO FALSO ALIBI","alibi"],
-["LA PROVA CHE PUÒ INCASTRARTI","punto_debole"],
-["LA TUA MISSIONE","obiettivo"]
-]){
-role.append(
-el("h3",title),
-el("p",secret.dossier[key]||"","intro")
-);
-}
-
-role.append(
-el("p","TOP SECRET — Non mostrare agli altri giocatori.","danger")
-);
-}
-
-stopPolling();
-showSection("characterPanel");
-phaseNow="";
-await refreshGame();
-startPolling();
-
-}catch(e){
-notice("Impossibile caricare la partita: "+e.message);
-}finally{
-loading=false;
-}
-}
-
 async function refreshGame(){
-if(busy)return;
-busy=true;
-
-try{
-const state=await rpc("get_my_game_phase",credentials());
-
-if(!state?.phase){
-throw new Error("Fase non disponibile");
+ if(busy)return;
+ busy=true;
+ try{
+ const state=await rpc("get_my_game_phase",credentials());
+ if(!state?.phase)throw new Error("Fase non disponibile");
+ const phase=state.phase,changed=phase!==phaseNow;
+ if(changed){
+ phaseNow=phase;
+ $("phaseTitle").textContent=phases[phase]||"INDAGINE IN CORSO";
+ $("phaseBriefing").textContent=phaseBriefings[phase]||"";
+ const step=Number(phase.split("_")[1])||1;
+ $("phaseProgress").replaceChildren(...Array.from({length:6},(_,i)=>{
+ const chip=el("span",String(i+1),i+1===step?"active":i+1<step?"done":"");
+ chip.setAttribute("aria-label","Fase "+(i+1));
+ return chip;
+ }));
+ $("dilemmaArea").classList.toggle("hidden",phase!=="stage_4");
+ $("dilemmaArea").replaceChildren();
+ $("dilemmaArea").dataset.mode="";
+ $("voteArea").replaceChildren();$("verdictArea").replaceChildren();
+ $("rewardArea").dataset.loadedPhase="";
+ $("rewardArea").classList.toggle("hidden",!["stage_5","stage_6"].includes(phase));
+ $("rewardArea").replaceChildren();
+ await loadPhaseClues();
+ renderInvestigation(phase);
+ }
+ const controls=$("gameControls");
+ if(changed||!controls.hasChildNodes()){
+ controls.replaceChildren();
+ if(state.is_host&&phase!=="stage_6"){
+ controls.appendChild(button("SBLOCCA FASE SUCCESSIVA",async()=>{
+ if(phase==="stage_4"&&!confirm("ATTENZIONE: assicurati che tutti abbiano completato il dilemma. Passare alla fase successiva?"))return;
+ if(phase!=="stage_4"&&!confirm("Passare alla fase successiva per tutti i giocatori?"))return;
+ try{
+ await rpc("advance_game_phase",{p_room_code:currentCode||storedCode(),...credentials()});
+ phaseNow="";await refreshGameAfterAction();
+ }catch(e){gameMessage(e.message)}
+ }));
+ }
+ }
+ if(phase==="stage_4")await loadDilemma();
+ if(phase==="stage_5"||phase==="stage_6")await loadReward();
+ if(phase==="stage_6")await loadVerdict(Boolean(state.is_host));
+ }catch(e){gameMessage(e.message)}
+ finally{busy=false}
 }
-
-const phase=state.phase;
-const changed=phase!==phaseNow;
-
-if(changed){
-phaseNow=phase;
-
-$("phaseTitle").textContent=
-phases[phase]||"INDAGINE IN CORSO";
-
-$("phaseBriefing").textContent=
-phaseBriefings[phase]||"";
-
-const step=Number(phase.split("_")[1])||1;
-
-$("phaseProgress").replaceChildren(
-...Array.from({length:6},(_,i)=>{
-const chip=el(
-"span",
-String(i+1),
-i+1===step?"active":i+1<step?"done":""
-);
-chip.setAttribute("aria-label","Fase "+(i+1));
-return chip;
-})
-);
-
-$("dilemmaArea").classList.toggle(
-"hidden",
-phase!=="stage_4"
-);
-
-$("dilemmaArea").replaceChildren();
-$("dilemmaArea").dataset.mode="";
-
-$("voteArea").replaceChildren();
-$("voteArea").dataset.mode="";
-$("verdictArea").replaceChildren();
-
-$("rewardArea").dataset.loadedPhase="";
-$("rewardArea").classList.toggle(
-"hidden",
-!["stage_5","stage_6"].includes(phase)
-);
-$("rewardArea").replaceChildren();
-
-await loadPhaseClues();
+async function refreshGameAfterAction(){busy=false;await refreshGame()}
+function renderInvestigation(phase){
+ const questions=interrogationPrompts[phase]||[];
+ const area=$("interrogationArea");
+ area.classList.toggle("hidden",questions.length===0);
+ if(questions.length){
+   promptIndex=0;
+   area.replaceChildren(el("div","INTERROGATORIO • CARTE GUIDA","tag"),el("h3","DOMANDA AL TAVOLO"));
+   const q=el("p",questions[0],"prompt");
+   area.append(q,button("PESCA UN'ALTRA DOMANDA",()=>{
+     promptIndex=(promptIndex+1)%questions.length;
+     q.textContent=questions[promptIndex];
+   },true));
+ }
+ const notes=$("notesArea");notes.classList.remove("hidden");
+ notes.replaceChildren(el("h3","✎ TACCUINO SEGRETO"),el("p","Scrivi sospetti, alibi e contraddizioni. Le note restano soltanto in questo browser.","hint"));
+ const input=el("textarea");input.placeholder="Sospettati, moventi, prove, bugie...";
+ const key="mf_notes_"+(storedCode()||"unknown")+"_"+(credentials().p_player_id||"unknown");
+ try{input.value=localStorage.getItem(key)||""}catch(e){}
+ input.addEventListener("input",()=>{try{localStorage.setItem(key,input.value)}catch(e){}});
+ notes.append(input);
 }
-
-const controls=$("gameControls");
-
-if(changed||!controls.hasChildNodes()){
-controls.replaceChildren();
-
-if(state.is_host&&phase!=="stage_6"){
-controls.appendChild(
-button("SBLOCCA FASE SUCCESSIVA",async()=>{
-
-if(phase==="stage_4"){
-if(!confirm(
-"ATTENZIONE: assicurati che tutti abbiano completato il dilemma. Passare alla fase successiva?"
-))return;
-}else{
-if(!confirm(
-"Passare alla fase successiva per tutti i giocatori?"
-))return;
-}
-
-try{
-await rpc("advance_game_phase",{
-p_room_code:currentCode||storedCode(),
-...credentials()
-});
-phaseNow="";
-await refreshGameAfterAction();
-}catch(e){
-gameMessage(e.message);
-}
-})
-);
-}
-}
-
-if(phase==="stage_4"){
-await loadDilemma();
-}
-
-if(phase==="stage_5"||phase==="stage_6"){
-await loadReward();
-}
-
-if(phase==="stage_6"){
-await loadVerdict(Boolean(state.is_host));
-}
-
-}catch(e){
-gameMessage(e.message);
-}finally{
-busy=false;
-}
-}
-
-async function refreshGameAfterAction(){
-busy=false;
-await refreshGame();
-}
-
 async function loadPhaseClues(){
-const target=$("gameClues");
-
-target.replaceChildren(
-el("h2","FASCICOLO INVESTIGATIVO")
-);
-
-const clues=await rpc(
-"get_game_clues",
-credentials()
-);
-
-if(!clues?.length){
-target.append(
-el("p","Nessun indizio disponibile.","intro")
-);
-return;
+ const target=$("gameClues");target.replaceChildren(el("h2","FASCICOLO INVESTIGATIVO"));
+ const clues=await rpc("get_game_clues",credentials());
+ if(!clues?.length){target.append(el("p","Nessun indizio disponibile.","intro"));return}
+ for(const clue of clues){target.append(el("h3",clue.title),el("p",clue.content,"intro"))}
 }
-
-for(const clue of clues){
-target.append(
-el("h3",clue.title),
-el("p",clue.content,"intro")
-);
-}
-}
-
 async function loadDilemma(){
-const area=$("dilemmaArea");
-
-const assignment=await rpc(
-"get_my_dilemma_assignment",
-credentials()
-);
-
-if(assignment?.status==="joker"){
-if(area.dataset.mode==="joker")return;
-
-area.dataset.mode="joker";
-area.replaceChildren(
-el("h2","♠ IL JOLLY — L'OSSERVATORE"),
-el("p","Non hai un avversario diretto. Ricevi 2 punti.","intro")
-);
-return;
+ const area=$("dilemmaArea");
+ const assignment=await rpc("get_my_dilemma_assignment",credentials());
+ if(assignment?.status==="joker"){
+ if(area.dataset.mode==="joker")return;
+ area.dataset.mode="joker";area.replaceChildren(
+ el("h2","♠ IL JOLLY — L'OSSERVATORE"),
+ el("p","Non hai un avversario diretto. Ricevi 2 punti.","intro"));
+ return;
+ }
+ if(assignment?.status!=="paired"){
+ if(area.dataset.mode!=="unavailable"){area.dataset.mode="unavailable";area.replaceChildren(el("p","Abbinamento non disponibile.","intro"))}
+ return;
+ }
+ const result=await rpc("get_my_dilemma_result",credentials());
+ const mode=result?.status==="completed"?"completed":
+ result?.has_chosen?"waiting":"choosing";
+ if(area.dataset.mode===mode)return;
+ area.dataset.mode=mode;
+ area.replaceChildren(el("h2","♠ IL DILEMMA DEL PRIGIONIERO"),
+ el("p","Il tuo avversario è: "+assignment.opponent,"intro"));
+ if(mode==="completed"){
+ area.append(el("p","La tua scelta: "+(result.my_choice==="cooperate"?"COLLABORA":"TRADISCI")+
+ " — Scelta avversaria: "+(result.opponent_choice==="cooperate"?"COLLABORA":"TRADISCI"),"intro"),
+ el("h3","Tu: "+result.my_points+" punti — Avversario: "+result.opponent_points+" punti","result"));
+ return;
+ }
+ if(mode==="waiting"){
+ area.append(el("p","Decisione registrata. Attendi il tuo avversario.","intro"));return;
+ }
+ area.append(el("p","La scelta è segreta e definitiva.","intro"));
+ async function choose(choice){
+ if(!confirm("Confermi la decisione definitiva?"))return;
+ const buttons=area.querySelectorAll("button");buttons.forEach(b=>b.disabled=true);
+ try{
+ await rpc("submit_dilemma_choice",{...credentials(),p_choice:choice});
+ area.dataset.mode="";await loadDilemma();
+ }catch(e){gameMessage(e.message);buttons.forEach(b=>b.disabled=false)}
+ }
+ area.append(button("🤝 COLLABORA",()=>choose("cooperate")),
+ button("🎭 TRADISCI",()=>choose("betray"),true));
 }
-
-if(assignment?.status!=="paired"){
-if(area.dataset.mode!=="unavailable"){
-area.dataset.mode="unavailable";
-area.replaceChildren(
-el("p","Abbinamento non disponibile.","intro")
-);
-}
-return;
-}
-
-const result=await rpc(
-"get_my_dilemma_result",
-credentials()
-);
-
-const mode=
-result?.status==="completed"
-?"completed"
-:result?.has_chosen
-?"waiting"
-:"choosing";
-
-if(area.dataset.mode===mode)return;
-
-area.dataset.mode=mode;
-
-area.replaceChildren(
-el("h2","♠ IL DILEMMA DEL PRIGIONIERO"),
-el("p","Il tuo avversario è: "+assignment.opponent,"intro")
-);
-
-if(mode==="completed"){
-area.append(
-el("p",
-"La tua scelta: "+
-(result.my_choice==="cooperate"?"COLLABORA":"TRADISCI")+
-" — Scelta avversaria: "+
-(result.opponent_choice==="cooperate"?"COLLABORA":"TRADISCI"),
-"intro"
-),
-el("h3",
-"Tu: "+result.my_points+
-" punti — Avversario: "+
-result.opponent_points+" punti",
-"result"
-)
-);
-return;
-}
-
-if(mode==="waiting"){
-area.append(
-el("p","Decisione registrata. Attendi il tuo avversario.","intro")
-);
-return;
-}
-
-area.append(
-el("p","La scelta è segreta e definitiva.","intro")
-);
-
-async function choose(choice){
-if(!confirm("Confermi la decisione definitiva?"))return;
-
-const buttons=area.querySelectorAll("button");
-buttons.forEach(b=>b.disabled=true);
-
-try{
-await rpc("submit_dilemma_choice",{
-...credentials(),
-p_choice:choice
-});
-area.dataset.mode="";
-await loadDilemma();
-}catch(e){
-gameMessage(e.message);
-buttons.forEach(b=>b.disabled=false);
-}
-}
-
-area.append(
-button("🤝 COLLABORA",()=>choose("cooperate")),
-button("🎭 TRADISCI",()=>choose("betray"),true)
-);
-}
-
 async function loadReward(){
-const area=$("rewardArea");
-
-if(!area)return;
-if(area.dataset.loadedPhase===phaseNow)return;
-
-area.classList.remove("hidden");
-area.replaceChildren(
-el("h3","♠ CARTA VANTAGGIO")
-);
-
-try{
-const reward=await rpc(
-"get_my_dilemma_reward",
-credentials()
-);
-
-if(reward?.status==="locked"){
-area.classList.add("hidden");
-return;
+ const area=$("rewardArea");
+ if(!area)return;
+ if(area.dataset.loadedPhase===phaseNow)return;
+ area.classList.remove("hidden");
+ area.replaceChildren(el("h3","♠ CARTA VANTAGGIO"));
+ try{
+ const reward=await rpc("get_my_dilemma_reward",credentials());
+ if(reward?.status==="locked"){
+   area.classList.add("hidden");return;
+ }
+ if(reward?.status==="pending"){
+   area.append(el("p","La carta non è disponibile: manca una decisione nel Dilemma del Prigioniero.","intro"));
+   return;
+ }
+ if(reward?.status!=="ready"){
+   area.append(el("p","Carta non disponibile.","intro"));return;
+ }
+ area.replaceChildren(
+   el("div","RICOMPENSA DEL DILEMMA","tag"),
+   el("h3",reward.title||"CARTA VANTAGGIO"),
+   el("p",String(reward.points??0)+" punti ottenuti","notice"),
+   el("p",reward.description||"","intro")
+ );
+ area.dataset.loadedPhase=phaseNow;
+ }catch(e){
+ area.replaceChildren(el("p","Impossibile caricare la carta: "+e.message,"notice"));
+ }
 }
-
-if(reward?.status==="pending"){
-area.append(
-el("p",
-"La carta non è disponibile: manca una decisione nel Dilemma del Prigioniero.",
-"intro")
-);
-return;
-}
-
-if(reward?.status!=="ready"){
-area.append(
-el("p","Carta non disponibile.","intro")
-);
-return;
-}
-
-area.replaceChildren(
-el("div","RICOMPENSA DEL DILEMMA","tag"),
-el("h3",reward.title||"CARTA VANTAGGIO"),
-el("p",
-String(reward.points??0)+" punti ottenuti",
-"notice"
-),
-el("p",reward.description||"","intro")
-);
-
-area.dataset.loadedPhase=phaseNow;
-
-}catch(e){
-area.replaceChildren(
-el("p",
-"Impossibile caricare la carta: "+e.message,
-"notice")
-);
-}
-}
-
 async function loadVerdict(isHost){
-const vote=$("voteArea");
-const final=$("verdictArea");
-
-const verdict=await rpc(
-"get_case_verdict",
-credentials()
-);
-
-if(verdict?.revealed){
-vote.replaceChildren();
-
-final.replaceChildren(
-el("h2","IL COLPEVOLE È..."),
-el("h1",verdict.culprit||"SCONOSCIUTO"),
-el("h3","RISULTATI DELLE ACCUSE")
-);
-
-for(const result of verdict.results||[]){
-if(result.votes){
-final.append(
-el("p",result.name+": "+result.votes+" voti")
-);
+ const vote=$("voteArea"),final=$("verdictArea");
+ const verdict=await rpc("get_case_verdict",credentials());
+ if(verdict?.revealed){
+ vote.replaceChildren();final.classList.add("revealed");final.replaceChildren(el("div","CASO CHIUSO • FASCICOLO 001","tag"),el("h2","IL COLPEVOLE È..."),
+ el("h1",verdict.culprit||"SCONOSCIUTO"),el("h3","RISULTATI DELLE ACCUSE"));
+ for(const result of verdict.results||[])if(result.votes)final.append(el("p",result.name+": "+result.votes+" voti"));
+ return;
+ }
+ if(verdict?.has_voted){
+ if(vote.dataset.mode!=="voted"){vote.dataset.mode="voted";vote.replaceChildren(el("p","Voto registrato. In attesa del verdetto.","intro"))}
+ }else if(vote.dataset.mode!=="voting"){
+ vote.dataset.mode="voting";vote.replaceChildren(el("h3","CHI HA UCCISO ADRIANO VALENTI?"));
+ const select=el("select");select.setAttribute("aria-label","Sospettato");
+ const suspects=await rpc("get_case_suspects",credentials());
+ for(const s of suspects||[]){const option=el("option",s.name);option.value=s.id;select.appendChild(option)}
+ vote.append(select,button("CONFERMA ACCUSA DEFINITIVA",async()=>{
+ if(!confirm("Confermi l'accusa definitiva?"))return;
+ try{await rpc("cast_case_vote",{...credentials(),p_suspect_id:select.value});
+ vote.dataset.mode="";await loadVerdict(isHost)}
+ catch(e){gameMessage(e.message)}
+ }));
+ }
+ if(isHost){
+ const allVoted=Number(verdict.votes_cast)>=Number(verdict.players_total)&&Number(verdict.players_total)>0;
+ gameMessage("Voti ricevuti: "+verdict.votes_cast+"/"+verdict.players_total+
+ (allVoted?" — Pronti per il verdetto.":" — Attendi tutti i voti."));
+ if(!$("revealButton")){
+ const reveal=button("RIVELA L'ASSASSINO",async()=>{
+ try{await rpc("reveal_case_verdict",credentials());await loadVerdict(true)}
+ catch(e){gameMessage(e.message)}
+ },true);
+ reveal.id="revealButton";
+ reveal.disabled=!allVoted;
+ reveal.title=allVoted?"Rivela il colpevole":"Attendi il voto di tutti i giocatori";
+ vote.append(reveal);
+ }
+ const revealButton=$("revealButton");
+ if(revealButton){revealButton.disabled=!allVoted;revealButton.title=allVoted?"Rivela il colpevole":"Attendi il voto di tutti i giocatori";}
+ }
 }
-}
-return;
-}
-
-if(verdict?.has_voted){
-if(vote.dataset.mode!=="voted"){
-vote.dataset.mode="voted";
-vote.replaceChildren(
-el("p",
-"Voto registrato. In attesa del verdetto.",
-"intro")
-);
-}
-}else if(vote.dataset.mode!=="voting"){
-vote.dataset.mode="voting";
-
-vote.replaceChildren(
-el("h3","CHI HA UCCISO ADRIANO VALENTI?")
-);
-
-const select=el("select");
-select.setAttribute("aria-label","Sospettato");
-
-const suspects=await rpc(
-"get_case_suspects",
-credentials()
-);
-
-for(const s of suspects||[]){
-const option=el("option",s.name);
-option.value=s.id;
-select.appendChild(option);
-}
-
-vote.append(
-select,
-button("CONFERMA ACCUSA DEFINITIVA",async()=>{
-if(!confirm("Confermi l'accusa definitiva?"))return;
-
-try{
-await rpc("cast_case_vote",{
-...credentials(),
-p_suspect_id:select.value
-});
-vote.dataset.mode="";
-await loadVerdict(isHost);
-}catch(e){
-gameMessage(e.message);
-}
-})
-);
-}
-
-if(isHost){
-const allVoted=
-Number(verdict.votes_cast)>=Number(verdict.players_total)
-&&Number(verdict.players_total)>0;
-
-gameMessage(
-"Voti ricevuti: "+
-verdict.votes_cast+"/"+verdict.players_total+
-(allVoted
-?" — Pronti per il verdetto."
-:" — Attendi tutti i voti.")
-);
-
-let reveal=$("revealButton");
-
-if(!reveal){
-reveal=button(
-"RIVELA L'ASSASSINO",
-async()=>{
-try{
-await rpc(
-"reveal_case_verdict",
-credentials()
-);
-await loadVerdict(true);
-}catch(e){
-gameMessage(e.message);
-}
-},
-true
-);
-
-reveal.id="revealButton";
-vote.append(reveal);
-}
-
-reveal.disabled=!allVoted;
-reveal.title=allVoted
-?"Rivela il colpevole"
-:"Attendi il voto di tutti i giocatori";
-}
-}
-
 $("createBtn").addEventListener("click",createRoom);
 $("joinBtn").addEventListener("click",joinRoom);
 $("startBtn").addEventListener("click",startGame);
-
 $("copyBtn").addEventListener("click",async()=>{
-try{
-await navigator.clipboard.writeText(currentCode);
-$("lobbyStatus").textContent="Codice copiato!";
-}catch(e){
-$("lobbyStatus").textContent="Codice: "+currentCode;
-}
+ try{await navigator.clipboard.writeText(currentCode);$("lobbyStatus").textContent="Codice copiato!"}
+ catch(e){$("lobbyStatus").textContent="Codice: "+currentCode}
 });
-
 restoreSession();
 </script>
 </body>
