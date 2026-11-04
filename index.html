@@ -261,6 +261,54 @@ async function showMyCharacter() {
   );
 
   document.querySelector(".container").appendChild(panel);
+  
+  document.querySelector(".container").appendChild(panel);
+  await showGameClues();
+}
+
+}
+
+async function showGameClues() {
+  const playerId = sessionStorage.getItem("murder_player_id");
+  const token = sessionStorage.getItem("murder_player_token");
+
+  const panel = document.getElementById("characterPanel");
+  if (!panel) return;
+
+  const section = document.createElement("div");
+  section.id = "cluesSection";
+
+  const heading = document.createElement("h2");
+  heading.textContent = "FASCICOLO INVESTIGATIVO";
+  section.appendChild(heading);
+
+  const { data, error } = await db.rpc("get_game_clues", {
+    p_player_id: playerId,
+    p_access_token: token
+  });
+
+  if (error) {
+    const message = document.createElement("p");
+    message.textContent = "Errore indizi: " + error.message;
+    section.appendChild(message);
+  } else if (!data || data.length === 0) {
+    const message = document.createElement("p");
+    message.textContent = "Nessun indizio disponibile.";
+    section.appendChild(message);
+  } else {
+    data.forEach(clue => {
+      const title = document.createElement("h3");
+      title.textContent = clue.title;
+
+      const content = document.createElement("p");
+      content.className = "intro";
+      content.textContent = clue.content;
+
+      section.append(title, content);
+    });
+  }
+
+  panel.appendChild(section);
 }
 
 </script>
