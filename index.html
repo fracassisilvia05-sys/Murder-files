@@ -112,7 +112,18 @@ function enterLobby(data,nickname){
 }
 
 async function refreshLobby(){
-  if(!currentCode) return;
+  
+  const gameStatus = await db.rpc("get_room_game_status", {
+    p_room_code: currentCode
+  });
+
+  if (!gameStatus.error && gameStatus.data?.started) {
+    if (!document.getElementById("characterPanel")) {
+      await showMyCharacter();
+    }
+    return;
+  }
+
 
   const count = document.getElementById("playerCount");
   const list = document.getElementById("playersList");
