@@ -309,6 +309,295 @@ async function showGameClues() {
   panel.appendChild(section);
 }
 
+const phaseNames = {
+  stage_1: "1 — LA SCENA DEL CRIMINE",
+  stage_2: "2 — I FASCICOLI SEGRETI",
+  stage_3: "3 — LE CARTE INDIZIO",
+  stage_4: "4 — IL DILEMMA DEL PRIGIONIERO",
+  stage_5: "5 — LA RICOSTRUZIONE",
+  stage_6: "6 — IL VERDETTO"
+};
+
+let gameRefreshTimer = null;
+let lastGamePhase = "";
+let gameUpdating = false;
+
+function gameCredentials() {
+  return {
+    p_player_id: sessionStorage.getItem("murder_player_id"),
+    p_access_token: sessionStorage.getItem("murder_player_token")
+  };
+}
+
+function gameMessage(message) {
+  const el = document.getElementById("gameMessage");
+  if (el) el.textContent = message;
+}
+
+async function showGameClues() {
+  const panel = document.getElementById("characterPanel");
+  if (!panel) return;
+
+  if (!document.getElementById("gameArea")) {
+    const area = document.createElement("div");
+    area.id = "gameArea";
+    panel.appendChild(area);
+  }
+
+  await refreshGame();
+
+  if (!gameRefreshTimer) {
+    gameRefreshTimer = setInterval(refreshGame, 5000);
+  }
+}
+
+async function refreshGame() {
+  if (gameUpdating) return;
+  gameUpdating = true;
+
+  try {
+    const area = document.getElementById("gameArea");
+    if (!area) return;
+
+    const credentials = gameCredentials();
+
+    const { data: state, error } = await db.rpc(
+      "get_my_game_phase",
+      credentials
+    );
+
+    if (error || !state) {
+      gameMessage(error?.message || "Impossibile leggere la fase");
+      return;
+    }
+
+    const phase = state.phase;
+    const changed = lastGamePhase !== phase;
+
+    if (changed || !document.getElementById("phaseTitle")) {
+      lastGamePhase = phase;
+      area.innerHTML = `
+        <div class="line"></div>
+        <h2 id="phaseTitle"></h2>
+        <p id="gameMessage" class="intro"></p>
+        <div id="gameControls"></div>
+        <div id="gameClues"></div>
+        <div id="voteArea"></div>
+        <div id="verdictArea"></div>
+      `;
+    }
+
+    document.getElementById("phaseTitle").textContent =
+      phaseNames[phase] || "INDAGINE IN CORSO";
+
+    const controls = document.getElementById("gameControls");
+    controls.replaceChildren();
+
+    if (state.is_host && phase !== "stage_6") {
+      const next = document.createElement("button");
+      next.textContent = "SBLOCCA FASE SUCCESSIVA";
+      next.onclick = async () => {
+        next.disabled = true;
+        const { error: advanceError } = await db.rpc(
+          "advance_game_phase",
+          {
+            p_room_code: currentCode ||
+              sessionStorage.getItem("murder_room_code"),
+            ...gameCredentials()
+          }
+        );
+        if (advanceError) {
+          gameMessage(advanceError.message);
+          next.disabled = false;
+        } else {
+          lastGamePhase = "";
+          await refreshGameAfterAction();
+        }
+      };
+      controls.appendChild(next);
+    }
+
+    if (changed) {
+      await loadPhaseClues();
+    }
+
+    if (phase === "stage_6") {
+      await loadVerdict(state.is_host);
+    }
+  } finally {
+    gameUpdating = false;
+  }
+}
+
+async function refreshGameAfterAction() {
+  gameUpdating = false;
+  await refreshGame();
+}
+
+async function loadPhaseClues() {
+  const target = document.getElementById("gameClues");
+  if (!target) return;
+
+  target.replaceChildren();
+
+  const { data, error } = await db.rpc(
+    "get_game_clues",
+    gameCredentials()
+  );
+
+  if (error) {
+    gameMessage("Errore indizi: " + error.message);
+    return;
+  }
+
+  const heading = document.createElement("h2");
+  heading.textContent = "FASCICOLO INVESTIGATIVO";
+  target.appendChild(heading);
+
+  for (const clue of data || []) {
+    const title = document.createElement("h3");
+    title.textContent = clue.title;
+
+    const content = document.createElement("p");
+    content.className = "intro";
+    content.textContent = clue.content;
+
+    target.append(title, content);
+  }
+}
+
+async function loadVerdict(isHost) {
+  const voteArea = document.getElementById("voteArea");
+  const verdictArea = document.getElementById("verdictArea");
+  if (!voteArea || !verdictArea) return;
+
+  const { data: verdict, error } = await db.rpc(
+    "get_case_verdict",
+    gameCredentials()
+  );
+
+  if (error) {
+    gameMessage(error.message);
+    return;
+  }
+
+  if (verdict.revealed) {
+    voteArea.replaceChildren();
+    verdictArea.replaceChildren();
+
+    const title = document.createElement("h2");
+    title.textContent = "IL COLPEVOLE È...";
+
+    const killer = document.createElement("h1");
+    killer.textContent = verdict.culprit || "SCONOSCIUTO";
+
+    const resultsTitle = document.createElement("h3");
+    resultsTitle.textContent = "RISULTATI DELLE ACCUSE";
+
+    verdictArea.append(title, killer, resultsTitle);
+
+    for (const result of verdict.results || []) {
+      if (!result.votes) continue;
+      const row = document.createElement("p");
+      row.textContent = result.name + ": " +
+        result.votes + " voti";
+      verdictArea.appendChild(row);
+    }
+    return;
+  }
+
+  if (verdict.has_voted) {
+    voteArea.replaceChildren();
+    const waiting = document.createElement("p");
+    waiting.className = "intro";
+    waiting.textContent = "Voto registrato. In attesa del verdetto.";
+    voteArea.appendChild(waiting);
+  } else if (!document.getElementById("suspectSelect")) {
+    voteArea.replaceChildren();
+
+    const heading = document.createElement("h3");
+    heading.textContent = "CHI HA UCCISO ADRIANO VALENTI?";
+
+    const select = document.createElement("select");
+    select.id = "suspectSelect";
+    select.style.width = "100%";
+    select.style.padding = "14px";
+    select.style.marginTop = "12px";
+
+    const { data: suspects, error: suspectsError } =
+      await db.rpc("get_case_suspects", gameCredentials());
+
+    if (suspectsError) {
+      gameMessage(suspectsError.message);
+      return;
+    }
+
+    for (const suspect of suspects || []) {
+      const option = document.createElement("option");
+      option.value = suspect.id;
+      option.textContent = suspect.name;
+      select.appendChild(option);
+    }
+
+    const voteButton = document.createElement("button");
+    voteButton.textContent = "CONFERMA ACCUSA DEFINITIVA";
+    voteButton.disabled = !suspects?.length;
+
+    voteButton.onclick = async () => {
+      if (!confirm("Confermi il voto? Non potrai cambiarlo.")) return;
+      voteButton.disabled = true;
+
+      const { error: voteError } = await db.rpc(
+        "cast_case_vote",
+        {
+          ...gameCredentials(),
+          p_suspect_id: select.value
+        }
+      );
+
+      if (voteError) {
+        gameMessage(voteError.message);
+        voteButton.disabled = false;
+      } else {
+        await loadVerdict(isHost);
+      }
+    };
+
+    voteArea.append(heading, select, voteButton);
+  }
+
+  if (isHost && !document.getElementById("revealButton")) {
+    const reveal = document.createElement("button");
+    reveal.id = "revealButton";
+    reveal.className = "secondary";
+    reveal.textContent = "RIVELA L'ASSASSINO";
+
+    reveal.onclick = async () => {
+      reveal.disabled = true;
+      const { error: revealError } = await db.rpc(
+        "reveal_case_verdict",
+        gameCredentials()
+      );
+
+      if (revealError) {
+        gameMessage(revealError.message);
+        reveal.disabled = false;
+      } else {
+        await loadVerdict(isHost);
+      }
+    };
+
+    voteArea.appendChild(reveal);
+  }
+
+  if (isHost) {
+    gameMessage(
+      "Voti ricevuti: " +
+      verdict.votes_cast + "/" + verdict.players_total
+    );
+  }
+}
+
 </script>
 </body>
 </html>
