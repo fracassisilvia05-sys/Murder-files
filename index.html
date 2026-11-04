@@ -216,7 +216,9 @@ async function refreshLobby(){
  const players=await rpc("get_room_players",{p_room_code:currentCode});
  $("playerCount").textContent=(players||[]).length+" / 10 investigatori";
  $("playersList").replaceChildren(...(players||[]).map(p=>el("li","◆ "+p.nickname)));
- $("lobbyStatus").textContent=(players||[]).length>=9?"Pronti per iniziare.":"In attesa di almeno 9 investigatori.";
+ $("lobbyStatus").textContent=(players||[]).length>=4
+  ?"Pronti per iniziare."
+  :"In attesa di almeno 4 giocatori.";
 }
 async function startGame(){
  const b=$("startBtn");b.disabled=true;
