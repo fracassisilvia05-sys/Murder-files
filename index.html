@@ -1659,4 +1659,67 @@ setInterval(renderFinal,1500);
 })();
 </script>
 
+<!-- MURDER FILES — FIX FINALE DEFINITIVO -->
+<script>
+(()=>{
+  'use strict';
+
+  const originalLoad=loadVerdict;
+
+  let loadingFinal=false;
+  let finalCompleted=false;
+
+  loadVerdict=async function(isHost){
+
+    const area=document.getElementById('verdictArea');
+
+    // Il finale è già stato costruito.
+    // Non cancellarlo e non ricrearlo.
+    if(
+      finalCompleted &&
+      area &&
+      area.classList.contains('revealed') &&
+      area.querySelector('#mfServerResult')
+    ){
+      return;
+    }
+
+    // Evita due aggiornamenti contemporanei.
+    if(loadingFinal)return;
+
+    loadingFinal=true;
+
+    try{
+      await originalLoad(isHost);
+
+      const final=document.getElementById('verdictArea');
+
+      if(
+        final &&
+        final.classList.contains('revealed') &&
+        final.querySelector('#mfServerResult')
+      ){
+        finalCompleted=true;
+      }
+
+    }finally{
+      loadingFinal=false;
+    }
+  };
+
+  // Quando il gioco cambia fase, il controllo
+  // del verdetto può ripartire normalmente.
+  const oldRefresh=refreshGame;
+
+  refreshGame=async function(){
+    if(phaseNow!=='stage_6'){
+      finalCompleted=false;
+    }
+
+    return await oldRefresh();
+  };
+
+})();
+</script>
+
 </html>
