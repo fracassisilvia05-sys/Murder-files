@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+
+<!-- MURDER FILES — FIX VERDETTO STABILE -->
+<script>
+(()=>{
+  'use strict';
+
+  const previousLoadVerdict=loadVerdict;
+
+  loadVerdict=async function(isHost){
+    const final=document.getElementById('verdictArea');
+
+    // Se il verdetto è già visibile, non ricrearlo.
+    if(
+      final &&
+      final.classList.contains('revealed') &&
+      final.querySelector('h1') &&
+      final.querySelector('#mfServerResult')
+    ){
+      return;
+    }
+
+    // Prima della rivelazione, il gioco
+    // continua a funzionare normalmente.
+    return await previousLoadVerdict(isHost);
+  };
+})();
+</script>
+
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MURDER FILES — CASE 001</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:dark;--gold:#c9a46a;--line:#584a36}
+*{box-sizing:border-box}body{margin:0;background:#101014;color:#eee;font-family:Georgia,serif;min-height:100vh;padding:24px 16px}
+.container{max-width:620px;margin:0 auto;text-align:center}.tag{font:12px Arial,sans-serif;letter-spacing:4px;color:var(--gold)}
+h1{font-size:clamp(31px,7vw,44px);letter-spacing:3px;margin:16px 0 6px}h2{font-size:23px;line-height:1.3}h3{font-size:18px}
+.case{font:13px Arial,sans-serif;letter-spacing:4px;color:var(--gold)}.line{height:1px;background:var(--line);margin:24px 0}
+.intro{color:#c2bcb5;line-height:1.65;font-size:16px;white-space:pre-line}.panel{background:#1b1b22;border:1px solid var(--line);padding:24px 20px;border-radius:9px;margin:24px 0}
+input,select{width:100%;padding:14px;margin:8px 0;background:#101014;border:1px solid #78674e;color:white;border-radius:5px;font-size:16px}
+button{width:100%;padding:15px;margin-top:12px;border:0;border-radius:5px;background:#c19a5f;color:#18120b;font:bold 14px Arial,sans-serif;letter-spacing:.5px;cursor:pointer}
+button.secondary{background:transparent;color:#e1bd82;border:1px solid #8b6d42}button:disabled{opacity:.5;cursor:not-allowed}
+.hidden{display:none!important}.small{font:11px Arial,sans-serif;color:#888;margin:25px}.notice{font:14px Arial,sans-serif;color:#e0be87;line-height:1.6;min-height:20px}
+.players-list{text-align:left;list-style:none;padding:0;font:14px Arial,sans-serif}.players-list li{padding:10px;border-bottom:1px solid var(--line)}
+.section{border-top:1px solid var(--line);margin-top:25px;padding-top:20px}.secret{border:1px solid #9c6949;border-radius:7px;padding:17px;margin-top:22px}
+.danger{color:#ff8c80}.result{border:1px solid var(--gold);padding:16px;border-radius:8px;margin-top:15px}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #f1c881;outline-offset:2px}
+.phase-progress{display:flex;justify-content:center;gap:8px;margin:0 0 18px}
+.phase-progress span{width:30px;height:30px;display:grid;place-items:center;border:1px solid #615039;border-radius:50%;font:12px Arial;color:#9e9281}
+.phase-progress span.done{color:#d9c7a5;border-color:#a58759}
+.phase-progress span.active{background:#c19a5f;color:#17120e;font-weight:bold;border-color:#c19a5f}
+#characterPanel{background:linear-gradient(160deg,#232126,#16161c 65%)}
+#secretRole{background:rgba(193,154,95,.055)}
+#gameClues h3{border-left:3px solid var(--gold);padding-left:12px;text-align:left}
+#gameClues p{text-align:left;margin-left:15px}
+#dilemmaArea{background:#13141b;border:1px solid #705b43;border-radius:8px;padding:16px;margin-top:20px}
+#rewardArea{border:1px solid #a48758;border-radius:8px;padding:18px;background:linear-gradient(135deg,#27231c,#15161b);margin-top:22px}
+#rewardArea h3{color:#dfbb83}
+#verdictArea h1{color:#d8b479;letter-spacing:2px}
+button:not(:disabled):active{transform:scale(.99)}
+@media(prefers-reduced-motion:no-preference){.panel{animation:fadeUp .35s ease both}@keyframes fadeUp{from{opacity:.5;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}}
+#interrogationArea,#notesArea{padding:18px;border:1px solid #615039;border-radius:8px;background:#16161c;margin-top:18px}
+#interrogationArea .prompt{font-size:18px;line-height:1.55;color:#e5c18a}
+#notesArea textarea{width:100%;min-height:140px;padding:12px;background:#0f1015;color:#eee;border:1px solid #74654f;border-radius:6px;font:15px Arial;resize:vertical}
+#notesArea .hint{font:12px Arial;color:#b5a899;line-height:1.5}
+#verdictArea.revealed{background:radial-gradient(ellipse at top,#3b281c,#15151b 75%);padding:24px 12px;border:1px solid #a17b4b;border-radius:8px;animation:fadeUp .7s ease both}
+</style>
+</head>
+<body>
+<main class="container">
+<div class="tag">UN CASO. NESSUNO È INNOCENTE.</div>
+<h1>MURDER FILES</h1><div class="case">CASE 001</div>
+<div class="line"></div>
+<p class="intro">Una serata. Un delitto. Dieci sospettati.<br>La verità è nascosta tra gli indizi.<br>Riuscirete a scoprire chi mente?</p>
+<div id="status" class="notice" role="status"></div>
+<section class="panel" id="entry">
+<input id="nickname" maxlength="20" placeholder="Il tuo nome da investigatore" autocomplete="off">
+<button id="createBtn">CREA UNA STANZA</button>
+<div class="line"></div>
+<input id="roomCode" maxlength="8" placeholder="CODICE DELLA STANZA" autocomplete="off">
+<button class="secondary" id="joinBtn">ENTRA NELLA STANZA</button>
+<p class="intro" style="font-size:13px">Le partite avviate si recuperano automaticamente su questo dispositivo, se le credenziali sono ancora salvate.</p>
+</section>
+<section class="panel hidden" id="lobby">
+<div class="tag">STANZA INVESTIGATIVA</div><h2 id="roomTitle"></h2>
+<p id="welcome" class="intro"></p>
+<button id="copyBtn" class="secondary">COPIA CODICE</button>
+<p id="playerCount" class="notice"></p>
+<ul id="playersList" class="players-list"></ul>
+<p id="lobbyStatus" class="notice"></p>
+<button id="startBtn">INIZIA PARTITA</button>
+</section>
+<section class="panel hidden" id="characterPanel">
+<div class="tag">DOSSIER PERSONALE • RISERVATO</div>
+<h2 id="characterName"></h2>
+<p id="characterDescription" class="intro"></p>
+<h3>LA TUA STORIA SEGRETA</h3><p id="characterStory" class="intro"></p>
+<h3>IL TUO OBIETTIVO</h3><p id="characterObjective" class="intro"></p>
+<div id="secretRole" class="secret"></div>
+<div id="gameArea" class="section">
+<div id="phaseProgress" class="phase-progress" aria-label="Avanzamento delle fasi"></div>
+<h2 id="phaseTitle"></h2><p id="phaseBriefing" class="intro"></p><p id="gameMessage" class="notice"></p>
+<div id="gameControls"></div>
+<div id="dilemmaArea" class="section hidden"></div>
+<div id="interrogationArea" class="section hidden"></div>
+<div id="notesArea" class="section hidden"></div>
+<div id="gameClues" class="section"></div>
+<div id="rewardArea" class="section hidden" aria-live="polite"></div>
+<div id="voteArea" class="section"></div>
+<div id="verdictArea" class="section"></div>
+</div>
+</section>
+<div class="small">MURDER FILES • CLASSIFIED CASE 001</div>
+</main>
+<script>
+"use strict";
+const db=window.supabase.createClient(
+  "https://bzxygqzsgrjgjarxzedo.supabase.co",
+  "sb_publishable_9gMfKc1fOOYJkgDpyh1n3g_vXOAezed"
+);
+const $=id=>document.getElementById(id);
+const phases={
+stage_1:"1 — LA SCENA DEL CRIMINE",stage_2:"2 — I FASCICOLI SEGRETI",
+stage_3:"3 — LE CARTE INDIZIO",stage_4:"4 — IL DILEMMA DEL PRIGIONIERO",
+stage_5:"5 — LA RICOSTRUZIONE",stage_6:"6 — IL VERDETTO"
+};
+const storageKeys=["murder_player_id","murder_player_token","murder_room_code"];
+const phaseBriefings={
+stage_1:"Esamina la scena del crimine. Leggi gli indizi disponibili e annota ciò che non torna.",
+stage_2:"Apri il tuo dossier personale. Puoi raccontare la verità, mentire o proteggere i tuoi segreti.",
+stage_3:"Confronta gli indizi con gli altri. Ogni dettaglio potrebbe cambiare la tua teoria.",
+stage_4:"Un avversario. Due scelte. Nessuna certezza. Collabora oppure tradisci: i risultati appariranno quando entrambi avranno deciso.",
+stage_5:"Ricostruite insieme il movente, l'occasione e la dinamica. L'assassino potrebbe manipolare la ricostruzione.",
+stage_6:"Formula la tua accusa definitiva. Il verdetto sarà rivelato dopo la votazione."
+};
+let currentCode="",phaseNow="",busy=false,timer=null,loading=false;
+const interrogationPrompts={
+ stage_1:["Qual è il dettaglio della scena che nessuno riesce a spiegare?","Chi avrebbe potuto trovarsi vicino alla vittima senza destare sospetti?"],
+ stage_2:["Racconta dove ti trovavi prima del delitto. Quale parte stai omettendo?","Chi può confermare il tuo alibi? E perché dovrebbe difenderti?","Quale segreto non vuoi che gli altri scoprano?"],
+ stage_3:["Quale indizio contraddice un alibi?","Chi ha tratto vantaggio dalla morte della vittima?","Quale prova potrebbe essere stata costruita per incastrare qualcuno?"],
+ stage_5:["Tutti indicano un movente: chi aveva anche l'occasione?","Ricostruite gli ultimi dieci minuti prima del delitto.","Scegliete il sospettato con la storia più contraddittoria e interrogatelo.","Ogni giocatore dichiari il proprio sospetto senza poterlo cambiare durante il giro."],
+ stage_6:["Prima di votare: chi aveva movente, mezzi e opportunità?","L'assassino potrebbe essere proprio chi ha guidato l'indagine."]
+};
+let promptIndex=0;
+function notice(msg){$("status").textContent=msg||""}
+function gameMessage(msg){$("gameMessage").textContent=msg||""}
+function credentials(){
+ return {p_player_id:sessionStorage.getItem(storageKeys[0])||localStorage.getItem(storageKeys[0]),
+ p_access_token:sessionStorage.getItem(storageKeys[1])||localStorage.getItem(storageKeys[1])};
+}
+function storedCode(){return sessionStorage.getItem(storageKeys[2])||localStorage.getItem(storageKeys[2])}
+function storeSession(data){
+ const values=[data.player_id,data.player_token,data.room_code];
+ storageKeys.forEach((key,i)=>{sessionStorage.setItem(key,values[i]);localStorage.setItem(key,values[i])});
+ currentCode=data.room_code;
+}
+function clearSession(){
+ storageKeys.forEach(k=>{sessionStorage.removeItem(k);localStorage.removeItem(k)});
+ currentCode="";stopPolling();phaseNow="";
+}
+function showSection(section){
+ for(const id of ["entry","lobby","characterPanel"])$(id).classList.toggle("hidden",id!==section);
+}
+function el(tag,text,cls){
+ const node=document.createElement(tag);
+ if(text!==undefined)node.textContent=text;
+ if(cls)node.className=cls;
+ return node;
+}
+function button(text,callback,secondary=false){
+ const b=el("button",text,secondary?"secondary":"");b.addEventListener("click",callback);return b;
+}
+async function rpc(name,args){
+ const {data,error}=await db.rpc(name,args);
+ if(error)throw new Error(error.message||"Errore di comunicazione");
+ return data;
+}
+function stopPolling(){if(timer){clearInterval(timer);timer=null}}
+function startPolling(){
+ stopPolling();timer=setInterval(()=>{
+ if(!document.hidden)refreshGame().catch(e=>gameMessage(e.message));
+ },5000);
+}
+async function createRoom(){
+ if(busy)return;
+ const nickname=$("nickname").value.trim();
+ if(nickname.length<2)return notice("Inserisci un nickname di almeno 2 caratteri.");
+ busy=true;notice("Creazione stanza...");
+ try{const data=await rpc("create_game_room",{p_nickname:nickname});await enterLobby(data,nickname)}
+ catch(e){notice(e.message)}finally{busy=false}
+}
+async function joinRoom(){
+ if(busy)return;
+ const nickname=$("nickname").value.trim(),code=$("roomCode").value.trim().toUpperCase();
+ if(nickname.length<2)return notice("Inserisci un nickname di almeno 2 caratteri.");
+ if(code.length<4)return notice("Inserisci un codice stanza valido.");
+ busy=true;notice("Accesso alla stanza...");
+ try{const data=await rpc("join_game_room",{p_code:code,p_nickname:nickname});await enterLobby(data,nickname)}
+ catch(e){notice(e.message)}finally{busy=false}
+}
+async function enterLobby(data,nickname){
+ if(!data?.room_code||!data.player_id||!data.player_token)throw new Error("Risposta stanza incompleta");
+ storeSession(data);notice("");$("roomTitle").textContent=currentCode;
+ $("welcome").textContent="Benvenuta, "+nickname+". Sei entrata nel caso.";
+ showSection("lobby");await refreshLobby();
+ if(!$("characterPanel").classList.contains("hidden"))return;
+ stopPolling();timer=setInterval(()=>refreshLobby().catch(e=>$("lobbyStatus").textContent=e.message),5000);
+}
+async function refreshLobby(){
+ if(!currentCode)return;
+ const state=await rpc("get_room_game_status",{p_room_code:currentCode});
+ if(state?.started){stopPolling();await showMyCharacter();return}
+ const players=await rpc("get_room_players",{p_room_code:currentCode});
+ $("playerCount").textContent=(players||[]).length+" / 10 investigatori";
+ $("playersList").replaceChildren(...(players||[]).map(p=>el("li","◆ "+p.nickname)));
+ $("lobbyStatus").textContent=(players||[]).length>=9?"Pronti per iniziare.":"In attesa di almeno 9 investigatori.";
+}
+async function startGame(){
+ const b=$("startBtn");b.disabled=true;
+ try{
+ await rpc("start_game",{p_room_code:currentCode,...credentials()});
+ await showMyCharacter();
+ }catch(e){$("lobbyStatus").textContent=e.message;b.disabled=false}
+}
+async function restoreSession(){
+ const c=credentials(),code=storedCode();
+ if(!c.p_player_id||!c.p_access_token||!code)return;
+ notice("Recupero della partita in corso...");
+ try{
+ const state=await rpc("get_my_game_phase",c);
+ currentCode=code;
+ if(state?.started||/^stage_[1-6]$/.test(state?.phase||"")){
+   await showMyCharacter();notice("");return;
+ }
+ $("roomTitle").textContent=code;
+ $("welcome").textContent="Sessione recuperata.";
+ showSection("lobby");await refreshLobby();
+ if(!$("lobby").classList.contains("hidden")){
+   stopPolling();timer=setInterval(()=>refreshLobby().catch(()=>{}),5000);
+ }
+ notice("");
+ }catch(e){
+ notice("Impossibile ripristinare la sessione: "+e.message+". Non creare un duplicato del tuo giocatore.");
+ }
+}
+async function showMyCharacter(){
+ if(loading)return;
+ loading=true;
+ try{
+ const c=credentials();
+ const [character,secret]=await Promise.all([
+ rpc("get_my_character",c),rpc("get_my_secret_role",c)
+ ]);
+ if(!character)throw new Error("Personaggio non disponibile.");
+ $("characterName").textContent=character.character_name||"PERSONAGGIO SEGRETO";
+ $("characterDescription").textContent=character.description||"";
+ $("characterStory").textContent=character.private_story||"";
+ $("characterObjective").textContent=character.secret_objective||"";
+ const role=$("secretRole");role.replaceChildren();
+ role.append(el("h2","IL TUO RUOLO SEGRETO"),el("p",secret?.message||"Ruolo non disponibile.","intro"));
+ if(secret?.is_culprit&&secret.dossier){
+ role.appendChild(el("h3","DOSSIER RISERVATO — ASSASSINO","danger"));
+ for(const [title,key] of [
+ ["IL TUO MOVENTE","movente"],["COME HAI COMMESSO IL DELITTO","dinamica"],
+ ["IL TUO FALSO ALIBI","alibi"],["LA PROVA CHE PUÒ INCASTRARTI","punto_debole"],
+ ["LA TUA MISSIONE","obiettivo"]
+ ]){role.append(el("h3",title),el("p",secret.dossier[key]||"","intro"))}
+ role.append(el("p","TOP SECRET — Non mostrare agli altri giocatori.","danger"));
+ }
+ stopPolling();showSection("characterPanel");phaseNow="";
+ await refreshGame();startPolling();
+ }catch(e){notice("Impossibile caricare la partita: "+e.message)}
+ finally{loading=false}
+}
+async function refreshGame(){
+ if(busy)return;
+ busy=true;
+ try{
+ const state=await rpc("get_my_game_phase",credentials());
+ if(!state?.phase)throw new Error("Fase non disponibile");
+ const phase=state.phase,changed=phase!==phaseNow;
+ if(changed){
+ phaseNow=phase;
+ $("phaseTitle").textContent=phases[phase]||"INDAGINE IN CORSO";
+ $("phaseBriefing").textContent=phaseBriefings[phase]||"";
+ const step=Number(phase.split("_")[1])||1;
+ $("phaseProgress").replaceChildren(...Array.from({length:6},(_,i)=>{
+ const chip=el("span",String(i+1),i+1===step?"active":i+1<step?"done":"");
+ chip.setAttribute("aria-label","Fase "+(i+1));
+ return chip;
+ }));
+ $("dilemmaArea").classList.toggle("hidden",phase!=="stage_4");
+ $("dilemmaArea").replaceChildren();
+ $("dilemmaArea").dataset.mode="";
+ $("voteArea").replaceChildren();$("verdictArea").replaceChildren();
+ $("rewardArea").dataset.loadedPhase="";
+ $("rewardArea").classList.toggle("hidden",!["stage_5","stage_6"].includes(phase));
+ $("rewardArea").replaceChildren();
+ await loadPhaseClues();
+ renderInvestigation(phase);
+ }
+ const controls=$("gameControls");
+ if(changed||!controls.hasChildNodes()){
+ controls.replaceChildren();
+ if(state.is_host&&phase!=="stage_6"){
+ controls.appendChild(button("SBLOCCA FASE SUCCESSIVA",async()=>{
+ if(phase==="stage_4"&&!confirm("ATTENZIONE: assicurati che tutti abbiano completato il dilemma. Passare alla fase successiva?"))return;
+ if(phase!=="stage_4"&&!confirm("Passare alla fase successiva per tutti i giocatori?"))return;
+ try{
+ await rpc("advance_game_phase",{p_room_code:currentCode||storedCode(),...credentials()});
+ phaseNow="";await refreshGameAfterAction();
+ }catch(e){gameMessage(e.message)}
+ }));
+ }
+ }
+ if(phase==="stage_4")await loadDilemma();
+ if(phase==="stage_5"||phase==="stage_6")await loadReward();
+ if(
+  phase==="stage_6" &&
+  !$("verdictArea").classList.contains("revealed")
+){
+  await loadVerdict(Boolean(state.is_host));
+}
+ }catch(e){gameMessage(e.message)}
+ finally{busy=false}
+}
+async function refreshGameAfterAction(){busy=false;await refreshGame()}
+function renderInvestigation(phase){
+ const questions=interrogationPrompts[phase]||[];
+ const area=$("interrogationArea");
+ area.classList.toggle("hidden",questions.length===0);
+ if(questions.length){
+   promptIndex=0;
+   area.replaceChildren(el("div","INTERROGATORIO • CARTE GUIDA","tag"),el("h3","DOMANDA AL TAVOLO"));
+   const q=el("p",questions[0],"prompt");
+   area.append(q,button("PESCA UN'ALTRA DOMANDA",()=>{
+     promptIndex=(promptIndex+1)%questions.length;
+     q.textContent=questions[promptIndex];
+   },true));
+ }
+ const notes=$("notesArea");notes.classList.remove("hidden");
+ notes.replaceChildren(el("h3","✎ TACCUINO SEGRETO"),el("p","Scrivi sospetti, alibi e contraddizioni. Le note restano soltanto in questo browser.","hint"));
+ const input=el("textarea");input.placeholder="Sospettati, moventi, prove, bugie...";
+ const key="mf_notes_"+(storedCode()||"unknown")+"_"+(credentials().p_player_id||"unknown");
+ try{input.value=localStorage.getItem(key)||""}catch(e){}
+ input.addEventListener("input",()=>{try{localStorage.setItem(key,input.value)}catch(e){}});
+ notes.append(input);
+}
+async function loadPhaseClues(){
+ const target=$("gameClues");target.replaceChildren(el("h2","FASCICOLO INVESTIGATIVO"));
+ const clues=await rpc("get_game_clues",credentials());
+ if(!clues?.length){target.append(el("p","Nessun indizio disponibile.","intro"));return}
+ for(const clue of clues){target.append(el("h3",clue.title),el("p",clue.content,"intro"))}
+}
+async function loadDilemma(){
+ const area=$("dilemmaArea");
+ const assignment=await rpc("get_my_dilemma_assignment",credentials());
+ if(assignment?.status==="joker"){
+ if(area.dataset.mode==="joker")return;
+ area.dataset.mode="joker";area.replaceChildren(
+ el("h2","♠ IL JOLLY — L'OSSERVATORE"),
+ el("p","Non hai un avversario diretto. Ricevi 2 punti.","intro"));
+ return;
+ }
+ if(assignment?.status!=="paired"){
+ if(area.dataset.mode!=="unavailable"){area.dataset.mode="unavailable";area.replaceChildren(el("p","Abbinamento non disponibile.","intro"))}
+ return;
+ }
+ const result=await rpc("get_my_dilemma_result",credentials());
+ const mode=result?.status==="completed"?"completed":
+ result?.has_chosen?"waiting":"choosing";
+ if(area.dataset.mode===mode)return;
+ area.dataset.mode=mode;
+ area.replaceChildren(el("h2","♠ IL DILEMMA DEL PRIGIONIERO"),
+ el("p","Il tuo avversario è: "+assignment.opponent,"intro"));
+ if(mode==="completed"){
+ area.append(el("p","La tua scelta: "+(result.my_choice==="cooperate"?"COLLABORA":"TRADISCI")+
+ " — Scelta avversaria: "+(result.opponent_choice==="cooperate"?"COLLABORA":"TRADISCI"),"intro"),
+ el("h3","Tu: "+result.my_points+" punti — Avversario: "+result.opponent_points+" punti","result"));
+ return;
+ }
+ if(mode==="waiting"){
+ area.append(el("p","Decisione registrata. Attendi il tuo avversario.","intro"));return;
+ }
+ area.append(el("p","La scelta è segreta e definitiva.","intro"));
+ async function choose(choice){
+ if(!confirm("Confermi la decisione definitiva?"))return;
+ const buttons=area.querySelectorAll("button");buttons.forEach(b=>b.disabled=true);
+ try{
+ await rpc("submit_dilemma_choice",{...credentials(),p_choice:choice});
+ area.dataset.mode="";await loadDilemma();
+ }catch(e){gameMessage(e.message);buttons.forEach(b=>b.disabled=false)}
+ }
+ area.append(button("🤝 COLLABORA",()=>choose("cooperate")),
+ button("🎭 TRADISCI",()=>choose("betray"),true));
+}
+async function loadReward(){
+ const area=$("rewardArea");
+ if(!area)return;
+ if(area.dataset.loadedPhase===phaseNow)return;
+ area.classList.remove("hidden");
+ area.replaceChildren(el("h3","♠ CARTA VANTAGGIO"));
+ try{
+ const reward=await rpc("get_my_dilemma_reward",credentials());
+ if(reward?.status==="locked"){
+   area.classList.add("hidden");return;
+ }
+ if(reward?.status==="pending"){
+   area.append(el("p","La carta non è disponibile: manca una decisione nel Dilemma del Prigioniero.","intro"));
+   return;
+ }
+ if(reward?.status!=="ready"){
+   area.append(el("p","Carta non disponibile.","intro"));return;
+ }
+ area.replaceChildren(
+   el("div","RICOMPENSA DEL DILEMMA","tag"),
+   el("h3",reward.title||"CARTA VANTAGGIO"),
+   el("p",String(reward.points??0)+" punti ottenuti","notice"),
+   el("p",reward.description||"","intro")
+ );
+ area.dataset.loadedPhase=phaseNow;
+ }catch(e){
+ area.replaceChildren(el("p","Impossibile caricare la carta: "+e.message,"notice"));
+ }
+}
+async function loadVerdict(isHost){
+ const vote=$("voteArea"),final=$("verdictArea");
+ const verdict=await rpc("get_case_verdict",credentials());
+ if(verdict?.revealed){
+ vote.replaceChildren();final.classList.add("revealed");final.replaceChildren(el("div","CASO CHIUSO • FASCICOLO 001","tag"),el("h2","IL COLPEVOLE È..."),
+ el("h1",verdict.culprit||"SCONOSCIUTO"),el("h3","RISULTATI DELLE ACCUSE"));
+ for(const result of verdict.results||[])if(result.votes)final.append(el("p",result.name+": "+result.votes+" voti"));
+ return;
+ }
+ if(verdict?.has_voted){
+ if(vote.dataset.mode!=="voted"){vote.dataset.mode="voted";vote.replaceChildren(el("p","Voto registrato. In attesa del verdetto.","intro"))}
+ }else if(vote.dataset.mode!=="voting"){
+ vote.dataset.mode="voting";vote.replaceChildren(el("h3","CHI HA UCCISO ADRIANO VALENTI?"));
+ const select=el("select");select.setAttribute("aria-label","Sospettato");
+ const suspects=await rpc("get_case_suspects",credentials());
+ for(const s of suspects||[]){const option=el("option",s.name);option.value=s.id;select.appendChild(option)}
+ vote.append(select,button("CONFERMA ACCUSA DEFINITIVA",async()=>{
+ if(!confirm("Confermi l'accusa definitiva?"))return;
+ try{await rpc("cast_case_vote",{...credentials(),p_suspect_id:select.value});
+ vote.dataset.mode="";await loadVerdict(isHost)}
+ catch(e){gameMessage(e.message)}
+ }));
+ }
+ if(isHost){
+ const allVoted=Number(verdict.votes_cast)>=Number(verdict.players_total)&&Number(verdict.players_total)>0;
+ gameMessage("Voti ricevuti: "+verdict.votes_cast+"/"+verdict.players_total+
+ (allVoted?" — Pronti per il verdetto.":" — Attendi tutti i voti."));
+ if(!$("revealButton")){
+ const reveal=button("RIVELA L'ASSASSINO",async()=>{
+ try{await rpc("reveal_case_verdict",credentials());await loadVerdict(true)}
+ catch(e){gameMessage(e.message)}
+ },true);
+ reveal.id="revealButton";
+ reveal.disabled=!allVoted;
+ reveal.title=allVoted?"Rivela il colpevole":"Attendi il voto di tutti i giocatori";
+ vote.append(reveal);
+ }
+ const revealButton=$("revealButton");
+ if(revealButton){revealButton.disabled=!allVoted;revealButton.title=allVoted?"Rivela il colpevole":"Attendi il voto di tutti i giocatori";}
+ }
+}
+$("createBtn").addEventListener("click",createRoom);
+$("joinBtn").addEventListener("click",joinRoom);
+$("startBtn").addEventListener("click",startGame);
+$("copyBtn").addEventListener("click",async()=>{
+ try{await navigator.clipboard.writeText(currentCode);$("lobbyStatus").textContent="Codice copiato!"}
+ catch(e){$("lobbyStatus").textContent="Codice: "+currentCode}
+});
+restoreSession();
+</script>
+  
+<!-- MURDER FILES — MODALITÀ IBRIDA -->
+<style>
+.mf-box{
+  margin:16px 0;
+  padding:16px;
+  border:1px solid #806747;
+  border-radius:9px;
+  background:#191820;
+  text-align:left;
+}
+.mf-box h3{color:#e2bb7f}
+.mf-box p{line-height:1.55}
+.mf-time{
+  font:bold 38px Arial;
+  text-align:center;
+  color:#e4bf84;
+}
+.mf-warning{color:#ffad9e}
+.mf-box button{margin-top:8px}
+.mf-box button:disabled{opacity:.45}
+</style>
+
+<script>
+(()=>{
+'use strict';
+
+const $mf=id=>document.getElementById(id);
+
+const mfKey=s=>
+  'mf_hybrid_'+storedCode()+'_'
+  +credentials().p_player_id+'_'+s;
+
+function mfRead(s){
+  try{
+    return JSON.parse(localStorage.getItem(mfKey(s))||'null');
+  }catch(e){return null}
+}
+
+function mfWrite(s,v){
+  try{
+    localStorage.setItem(mfKey(s),JSON.stringify(v));
+  }catch(e){}
+}
+
+function mfText(tag,txt){
+  const e=document.createElement(tag);
+  e.textContent=txt;
+  return e;
+}
+
+function mfBtn(txt,fn){
+  const b=document.createElement('button');
+  b.type='button';
+  b.textContent=txt;
+  b.addEventListener('click',fn);
+  return b;
+}
+
+let countdown=null;
+let remaining=30;
+let currentPhase='';
+
+function stopTimer(){
+  if(countdown){
+    clearInterval(countdown);
+    countdown=null;
+  }
+}
+
+function makeTimer(panel,seconds){
+  stopTimer();
+  remaining=seconds;
+
+  const display=mfText('div','');
+  display.className='mf-time';
+
+  const controls=document.createElement('div');
+
+  function update(){
+    const m=String(Math.floor(remaining/60)).padStart(2,'0');
+    const s=String(remaining%60).padStart(2,'0');
+    display.textContent=m+':'+s;
+
+    if(remaining===0){
+      stopTimer();
+      display.classList.add('mf-warning');
+    }else{
+      display.classList.remove('mf-warning');
+    }
+  }
+
+  const start=mfBtn('AVVIA TIMER',()=>{
+    stopTimer();
+    remaining=seconds;
+    update();
+
+    countdown=setInterval(()=>{
+      remaining=Math.max(0,remaining-1);
+      update();
+    },1000);
+  });
+
+  const pause=mfBtn('PAUSA',stopTimer);
+
+  const reset=mfBtn('AZZERA TIMER',()=>{
+    stopTimer();
+    remaining=seconds;
+    update();
+  });
+
+  controls.append(start,pause,reset);
+  panel.append(display,controls);
+  update();
+
+  return {display,controls};
+}
+
+function getPanel(){
+  let panel=$mf('mfHybridPanel');
+
+  if(!panel){
+    panel=document.createElement('section');
+    panel.id='mfHybridPanel';
+    panel.className='mf-box';
+
+    const target=$mf('interrogationArea');
+    if(target)target.insertAdjacentElement('afterend',panel);
+  }
+
+  return panel;
+}
+
+function renderHybrid(phase){
+  const active=['stage_2','stage_3','stage_5','stage_6'];
+
+  if(!active.includes(phase)){
+    stopTimer();
+    const old=$mf('mfHybridPanel');
+    if(old)old.remove();
+    currentPhase='';
+    return;
+  }
+
+  const panel=getPanel();
+  if(!panel)return;
+
+  if(currentPhase===phase && panel.childElementCount)return;
+
+  currentPhase=phase;
+  stopTimer();
+  panel.replaceChildren();
+
+  panel.append(
+    mfText('h3','♠ INTERROGATORIO DAL VIVO'),
+    mfText('p',
+      'Le domande e le risposte avvengono a voce. '
+      +'Puoi mentire sul tuo alibi, ma non inventare prove '
+      +'o modificare i fatti del dossier.'
+    )
+  );
+
+  if(phase==='stage_6'){
+    panel.append(
+      mfText('h3','ACCUSA FINALE'),
+      mfText('p',
+        'Prima di votare, dichiara al gruppo: '
+        +'chi accusi, il movente, l’occasione '
+        +'e la prova che contraddice il suo alibi.'
+      )
+    );
+    return;
+  }
+
+  const silenceUsed=!!mfRead('silence');
+
+  const silence=mfBtn(
+    silenceUsed
+      ?'DIRITTO AL SILENZIO GIÀ USATO'
+      :'USA IL MIO DIRITTO AL SILENZIO',
+    ()=>{
+      if(mfRead('silence'))return;
+
+      if(!confirm(
+        'Puoi rifiutare una risposta una sola volta. Confermi?'
+      ))return;
+
+      mfWrite('silence',true);
+      silence.textContent='DIRITTO AL SILENZIO GIÀ USATO';
+      silence.disabled=true;
+    }
+  );
+
+  silence.disabled=silenceUsed;
+  panel.append(silence);
+
+  panel.append(
+    mfText('p',
+      'Turno ordinario: una domanda a un sospettato. '
+      +'La risposta deve arrivare entro 30 secondi. '
+      +'Puoi contestarla citando una prova già sbloccata.'
+    )
+  );
+
+  const timerArea=document.createElement('div');
+  panel.append(timerArea);
+
+  function setTimer(seconds){
+    stopTimer();
+    timerArea.replaceChildren();
+    makeTimer(timerArea,seconds);
+  }
+
+  setTimer(30);
+
+  if(phase==='stage_5'){
+    panel.append(
+      mfText('h3','♠ CARTA VANTAGGIO'),
+      mfText('p',
+        '1 punto: domanda aggiuntiva a due sospettati diversi. '
+        +'2 punti: confronto riservato di 2 minuti. '
+        +'3 punti: tre domande consecutive allo stesso sospettato. '
+        +'La carta si usa una sola volta.'
+      )
+    );
+
+    const used=!!mfRead('reward_used');
+
+    const use=mfBtn(
+      used?'CARTA GIÀ UTILIZZATA':'SEGNA CARTA COME UTILIZZATA',
+      ()=>{
+        if(mfRead('reward_used'))return;
+
+        if(!confirm(
+          'Confermi di avere utilizzato la carta vantaggio?'
+        ))return;
+
+        mfWrite('reward_used',true);
+        use.textContent='CARTA GIÀ UTILIZZATA';
+        use.disabled=true;
+      }
+    );
+
+    use.id='mfUseReward';
+    use.disabled=used;
+    panel.append(use);
+
+    panel.append(
+      mfBtn('TIMER CONFRONTO RISERVATO — 2 MINUTI',
+        ()=>setTimer(120)
+      ),
+      mfBtn('TORNA AL TIMER DA 30 SECONDI',
+        ()=>setTimer(30)
+      )
+    );
+  }
+}
+
+/* Collega gli interrogatori alle fasi esistenti. */
+const originalRender=renderInvestigation;
+
+renderInvestigation=function(phase){
+  originalRender(phase);
+  renderHybrid(phase);
+};
+
+/* Verifica che la carta sia stata realmente ottenuta. */
+const originalReward=loadReward;
+
+loadReward=async function(){
+  await originalReward();
+
+  const use=$mf('mfUseReward');
+  if(!use)return;
+
+  try{
+    const reward=await rpc(
+      'get_my_dilemma_reward',
+      credentials()
+    );
+
+    if(
+      reward?.status!=='ready' ||
+      Number(reward.points)<=0
+    ){
+      use.disabled=true;
+      use.textContent='NESSUNA CARTA DISPONIBILE';
+    }
+  }catch(e){
+    use.disabled=true;
+    use.textContent='CARTA NON VERIFICABILE';
+  }
+};
+
+/* Aggiunge la ricostruzione dopo il verdetto. */
+const originalVerdict=loadVerdict;
+
+loadVerdict=async function(isHost){
+  await originalVerdict(isHost);
+
+  const final=$mf('verdictArea');
+
+  if(!final || !final.classList.contains('revealed'))return;
+  if($mf('mfFinalExplanation'))return;
+
+  const verdict=await rpc(
+    'get_case_verdict',
+    credentials()
+  );
+
+  const votes=verdict.results||[];
+
+  const total=votes.reduce(
+    (n,v)=>n+Number(v.votes||0),0
+  );
+
+  const culpritVotes=votes
+    .filter(v=>v.name===verdict.culprit)
+    .reduce((n,v)=>n+Number(v.votes||0),0);
+
+  const investigatorsWin=culpritVotes>total/2;
+
+  const panel=document.createElement('section');
+  panel.id='mfFinalExplanation';
+  panel.className='mf-box';
+
+  panel.append(
+    mfText('h3',
+      investigatorsWin
+        ?'VINCONO GLI INVESTIGATORI'
+        :'VINCE L’ASSASSINO'
+    ),
+    mfText('p',
+      'Voti per il vero colpevole: '
+      +culpritVotes+' su '+total
+      +'. Serve la maggioranza assoluta.'
+    ),
+    mfText('h3','RICOSTRUZIONE DEL DELITTO'),
+    mfText('p',
+      '23:31 — Dal telefono di Adriano parte un messaggio. '
+      +'23:38 — La telecamera viene disattivata. '
+      +'23:41 — Viene registrato un accesso allo studio. '
+      +'23:41–23:44 — Finestra della morte. '
+      +'23:47 — Viene ritrovato il corpo.'
+    ),
+    mfText('p',
+      'Le credenziali, il dispositivo e le tracce '
+      +'sul fermacarte collegano il colpevole '
+      +'all’accesso e alla scena. '
+      +'Ogni elemento deve essere valutato '
+      +'insieme agli altri e alle possibili spiegazioni alternative.'
+    )
+  );
+
+  final.append(panel);
+};
+
+})();
+</script>
+
+<!-- MURDER FILES — SINCRONIZZAZIONE SERVER -->
+<script>
+(()=>{
+'use strict';
+
+const byId=id=>document.getElementById(id);
+
+let actionBusy=false;
+let syncVersion=0;
+
+function actionButtons(){
+  const panel=byId('mfHybridPanel');
+  if(!panel)return {};
+
+  const buttons=[...panel.querySelectorAll('button')];
+
+  return {
+    silence:buttons.find(b=>
+      b.textContent.includes('DIRITTO AL SILENZIO')
+    ),
+    reward:byId('mfUseReward')
+  };
+}
+
+function setActionState(state){
+  const {silence,reward}=actionButtons();
+
+  if(silence){
+    silence.disabled=!!state.silence_used;
+    silence.textContent=state.silence_used
+      ?'DIRITTO AL SILENZIO GIÀ USATO'
+      :'USA IL MIO DIRITTO AL SILENZIO';
+  }
+
+  if(reward){
+    if(state.reward_used){
+      reward.disabled=true;
+      reward.textContent='CARTA GIÀ UTILIZZATA';
+    }else if(
+      reward.textContent==='CARTA GIÀ UTILIZZATA'
+    ){
+      reward.disabled=false;
+      reward.textContent='SEGNA CARTA COME UTILIZZATA';
+    }
+  }
+}
+
+async function syncActions(){
+  const version=++syncVersion;
+  const panel=byId('mfHybridPanel');
+
+  if(!panel)return;
+
+  try{
+    const state=await rpc(
+      'mf_get_actions',
+      credentials()
+    );
+
+    if(version!==syncVersion)return;
+    if(!byId('mfHybridPanel'))return;
+
+    setActionState(state);
+  }catch(e){
+    const {silence,reward}=actionButtons();
+
+    if(silence)silence.disabled=true;
+    if(reward)reward.disabled=true;
+
+    gameMessage(
+      'Impossibile verificare le azioni: '+e.message
+    );
+  }
+}
+
+/*
+  Intercetta i due pulsanti PRIMA dei vecchi
+  gestori che salvavano soltanto nel browser.
+*/
+document.addEventListener('click',async event=>{
+  const target=event.target;
+
+  if(!(target instanceof Element))return;
+
+  const btn=target.closest('button');
+  if(!btn)return;
+
+  const {silence,reward}=actionButtons();
+
+  let action=null;
+
+  if(btn===silence)action='silence';
+  if(btn===reward)action='reward';
+
+  if(!action)return;
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+
+  if(actionBusy || btn.disabled)return;
+
+  const question=action==='silence'
+    ?'Vuoi utilizzare definitivamente il diritto al silenzio?'
+    :'Vuoi utilizzare definitivamente la carta vantaggio?';
+
+  if(!confirm(question))return;
+
+  actionBusy=true;
+  btn.disabled=true;
+
+  try{
+    const state=await rpc(
+      'mf_use_action',
+      {
+        ...credentials(),
+        p_action:action
+      }
+    );
+
+    setActionState(state);
+
+    if(action==='silence'){
+      gameMessage(
+        'Diritto al silenzio registrato sul server.'
+      );
+    }else{
+      gameMessage(
+        'Carta vantaggio utilizzata e registrata.'
+      );
+    }
+
+  }catch(e){
+    gameMessage(e.message);
+    await syncActions();
+  }finally{
+    actionBusy=false;
+  }
+
+},true);
+
+
+/*
+  Quando cambia la fase, aggiorna lo stato
+  delle carte dal database.
+*/
+const previousInvestigation=renderInvestigation;
+
+renderInvestigation=function(phase){
+  previousInvestigation(phase);
+
+  if(['stage_2','stage_3','stage_5'].includes(phase)){
+    syncActions();
+  }
+};
+
+
+/*
+  Mostra la vittoria calcolata da Supabase,
+  non quella ricostruita dal browser.
+*/
+const previousVerdict=loadVerdict;
+
+loadVerdict=async function(isHost){
+  await previousVerdict(isHost);
+
+  const final=byId('verdictArea');
+
+  if(
+    !final ||
+    !final.classList.contains('revealed')
+  )return;
+
+  try{
+    const result=await rpc(
+      'mf_get_final_result',
+      credentials()
+    );
+
+    if(!result?.revealed)return;
+
+    // Rimuove il vecchio risultato locale.
+    const old=byId('mfFinalExplanation');
+    if(old)old.remove();
+
+    let panel=byId('mfServerResult');
+
+    if(!panel){
+      panel=document.createElement('section');
+      panel.id='mfServerResult';
+      panel.className='mf-box';
+      final.append(panel);
+    }
+
+    panel.replaceChildren();
+
+    function line(tag,text){
+      const e=document.createElement(tag);
+      e.textContent=text;
+      panel.append(e);
+    }
+
+    line(
+      'h2',
+      result.investigators_win
+        ?'🏆 VINCONO GLI INVESTIGATORI'
+        :'♠ VINCE L’ASSASSINO'
+    );
+
+    line(
+      'p',
+      'Colpevole: '+result.culprit
+    );
+
+    line(
+      'p',
+      'Voti corretti: '
+      +result.correct_votes
+      +' su '+result.players_total
+      +'. Voti necessari: '
+      +result.required_votes+'.'
+    );
+
+    line('h3','RICOSTRUZIONE DEL DELITTO');
+
+    line(
+      'p',
+      '23:31 — Dal telefono della vittima '
+      +'parte un messaggio misterioso.'
+    );
+
+    line(
+      'p',
+      '23:38 — La telecamera del corridoio '
+      +'viene disattivata.'
+    );
+
+    line(
+      'p',
+      '23:41 — Le credenziali del colpevole '
+      +'vengono utilizzate per entrare nello studio.'
+    );
+
+    line(
+      'p',
+      '23:41–23:44 — Intervallo della morte.'
+    );
+
+    line(
+      'p',
+      '23:47 — Adriano Valenti viene trovato morto.'
+    );
+
+    line(
+      'h3',
+      'LE PROVE CONTRO IL COLPEVOLE'
+    );
+
+    line(
+      'p',
+      'Le credenziali personali, il codice '
+      +'temporaneo e le tracce sul fermacarte '
+      +'collegano il colpevole alla scena. '
+      +'Queste prove devono essere valutate '
+      +'insieme: nessuna dimostra isolatamente '
+      +'ogni passaggio del delitto.'
+    );
+
+  }catch(e){
+    gameMessage(
+      'Errore nel risultato ufficiale: '+e.message
+    );
+  }
+};
+
+
+/*
+  Aggiorna lo stato quando il giocatore
+  torna alla scheda del browser.
+*/
+document.addEventListener('visibilitychange',()=>{
+  if(
+    !document.hidden &&
+    byId('mfHybridPanel')
+  ){
+    syncActions();
+  }
+});
+
+})();
+</script>
+
+<!-- MURDER FILES — TORNA ALLA HOME -->
+<script>
+(()=>{
+  'use strict';
+
+  function addHomeButton(){
+    if(document.getElementById('mfHomeButton'))return;
+
+    const btn=document.createElement('button');
+    btn.id='mfHomeButton';
+    btn.type='button';
+    btn.textContent='⌂ ESCI DALLA STANZA';
+    btn.style.cssText=`
+      position:fixed;
+      top:12px;
+      right:12px;
+      z-index:9999;
+      width:auto;
+      max-width:190px;
+      padding:10px 12px;
+      font-size:12px;
+      border:1px solid #c6a16b;
+      border-radius:8px;
+      background:#211b26;
+      color:#f2d5a5;
+      cursor:pointer;
+    `;
+
+    btn.addEventListener('click',()=>{
+      if(!confirm(
+        'Vuoi tornare alla schermata iniziale? '+
+        'La stanza resterà salvata e gli altri giocatori '+
+        'non verranno disconnessi.'
+      ))return;
+
+      clearSession();
+      location.reload();
+    });
+
+    document.body.appendChild(btn);
+  }
+
+  if(document.readyState==='loading'){
+    document.addEventListener(
+      'DOMContentLoaded',addHomeButton
+    );
+  }else{
+    addHomeButton();
+  }
+})();
+</script>
+
+</body>
+  
+<!-- MURDER FILES — RITRATTI DEI PERSONAGGI -->
+<style>
+.mf-portrait{
+  width:100%;
+  aspect-ratio:6/7;
+  background-image:url('./murder_files_volti.jpg');
+  background-size:500% 200%;
+  background-repeat:no-repeat;
+  background-color:#17151a;
+  border:2px solid #a68756;
+  border-radius:6px;
+}
+#mfMyPortrait{
+  max-width:230px;
+  margin:18px auto;
+  box-shadow:0 8px 30px #0008;
+}
+#mfGallery{
+  margin:25px 0;
+  padding:18px 12px;
+  border:1px solid #6e593c;
+  border-radius:9px;
+  background:#17161c;
+}
+#mfGalleryGrid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+.mf-suspect{
+  padding:8px;
+  border:1px solid #554936;
+  border-radius:7px;
+  background:#211e22;
+}
+.mf-suspect .mf-portrait{
+  border-width:1px;
+}
+.mf-suspect strong{
+  display:block;
+  margin-top:9px;
+  font:12px Arial,sans-serif;
+  color:#e3c08a;
+}
+.mf-suspect small{
+  display:block;
+  margin-top:5px;
+  font:11px Arial,sans-serif;
+  color:#bdb3a5;
+  line-height:1.4;
+}
+#mfCulpritPortrait{
+  max-width:240px;
+  margin:20px auto;
+  border-color:#bd554d;
+}
+</style>
+
+<script>
+(()=>{
+'use strict';
+
+const characters=[
+  ['Il Calcolatore','Analizza ogni decisione.'],
+  ['Il Giocatore','Rischia tutto pur di vincere.'],
+  ['Il Manipolatore','Conosce le debolezze altrui.'],
+  ['Il Ribelle','Vuole distruggere l’esperimento.'],
+  ['Il Traditore','Ha infranto un accordo.'],
+  ["L'Enigma",'Nessuno conosce il suo passato.'],
+  ['La Maschera','Nasconde le proprie emozioni.'],
+  ['La Psicologa','Studia il comportamento umano.'],
+  ['La Stratega','Pianifica ogni mossa.'],
+  ['La Testimone','Ha visto qualcosa di proibito.']
+];
+
+const normalize=s=>
+  String(s||'')
+    .replace(/[’‘`]/g,"'")
+    .trim()
+    .toLocaleLowerCase('it');
+
+function characterIndex(name){
+  return characters.findIndex(c=>
+    normalize(c[0])===normalize(name)
+  );
+}
+
+function portrait(index,id){
+  const e=document.createElement('div');
+  e.className='mf-portrait';
+  if(id)e.id=id;
+  e.setAttribute('role','img');
+  e.setAttribute(
+    'aria-label','Ritratto di '+characters[index][0]
+  );
+
+  const col=index%5;
+  const row=Math.floor(index/5);
+
+  e.style.backgroundPosition=
+    (col*25)+'% '+(row*100)+'%';
+
+  return e;
+}
+
+function showMyPortrait(){
+  const name=document.getElementById('characterName');
+  if(!name || !name.textContent.trim())return;
+
+  const index=characterIndex(name.textContent);
+  if(index<0)return;
+
+  const existing=document.getElementById('mfMyPortrait');
+  if(existing)existing.remove();
+
+  name.insertAdjacentElement(
+    'afterend',
+    portrait(index,'mfMyPortrait')
+  );
+}
+
+function showGallery(){
+  const game=document.getElementById('gameArea');
+  if(!game || document.getElementById('mfGallery'))return;
+
+  const section=document.createElement('section');
+  section.id='mfGallery';
+
+  const title=document.createElement('h3');
+  title.textContent='♠ ARCHIVIO DEI SOSPETTATI';
+
+  const intro=document.createElement('p');
+  intro.className='intro';
+  intro.textContent=
+    'Dieci volti. Dieci segreti. Un assassino.';
+
+  const grid=document.createElement('div');
+  grid.id='mfGalleryGrid';
+
+  characters.forEach((c,i)=>{
+    const card=document.createElement('div');
+    card.className='mf-suspect';
+
+    const name=document.createElement('strong');
+    name.textContent=c[0];
+
+    const description=document.createElement('small');
+    description.textContent=c[1];
+
+    card.append(
+      portrait(i),
+      name,
+      description
+    );
+    grid.append(card);
+  });
+
+  section.append(title,intro,grid);
+  game.prepend(section);
+}
+
+function showCulpritPortrait(){
+  const verdict=document.getElementById('verdictArea');
+  if(
+    !verdict ||
+    !verdict.classList.contains('revealed')
+  )return;
+
+  const heading=verdict.querySelector('h1');
+  if(!heading)return;
+
+  const index=characterIndex(heading.textContent);
+  if(index<0)return;
+
+  if(document.getElementById('mfCulpritPortrait'))return;
+
+  heading.insertAdjacentElement(
+    'afterend',
+    portrait(index,'mfCulpritPortrait')
+  );
+}
+
+function updatePortraits(){
+  const panel=document.getElementById('characterPanel');
+
+  if(panel && !panel.classList.contains('hidden')){
+    const name=document.getElementById('characterName');
+
+    if(name && name.textContent.trim()){
+      if(!document.getElementById('mfMyPortrait')){
+        showMyPortrait();
+      }
+      showGallery();
+    }
+  }
+
+  showCulpritPortrait();
+}
+
+updatePortraits();
+setInterval(updatePortraits,1500);
+
+})();
+</script>
+
+<!-- MURDER FILES — FINALE CINEMATOGRAFICO -->
+<style>
+/* Pulsante uscita meno invasivo */
+#mfHomeButton{
+  position:fixed!important;
+  top:auto!important;
+  right:12px!important;
+  bottom:14px!important;
+  width:auto!important;
+  max-width:155px!important;
+  padding:9px 11px!important;
+  font-size:10px!important;
+  opacity:.88;
+  z-index:9999;
+}
+
+/* Finale */
+#mfCinematicFinal{
+  margin:24px 0 8px;
+  padding:24px 15px;
+  border:1px solid #b38a55;
+  border-radius:10px;
+  background:
+    radial-gradient(circle at top,#39241f,#151419 75%);
+  text-align:center;
+  animation:mfReveal .8s ease both;
+}
+
+@keyframes mfReveal{
+  from{opacity:0;transform:translateY(18px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+#mfCinematicFinal .mf-final-label{
+  color:#caa676;
+  letter-spacing:4px;
+  font:11px Arial,sans-serif;
+}
+
+#mfCinematicFinal h2{
+  color:#e5c38e;
+  font-size:27px;
+}
+
+#mfCinematicFinal .mf-final-portrait{
+  width:min(230px,85%);
+  aspect-ratio:6/7;
+  margin:20px auto;
+  border:3px solid #a74843;
+  border-radius:8px;
+  background-image:url('./murder_files_volti.jpg');
+  background-size:500% 200%;
+  background-repeat:no-repeat;
+  box-shadow:0 0 35px #7c252555;
+}
+
+#mfCinematicFinal .mf-final-section{
+  text-align:left;
+  padding:17px 12px;
+  border-top:1px solid #69513c;
+  line-height:1.7;
+}
+
+#mfCinematicFinal h3{
+  color:#e0b980;
+  font-size:17px;
+}
+
+#mfCinematicFinal p{
+  color:#e1d8cc;
+  line-height:1.75;
+}
+
+#mfCinematicFinal .mf-final-end{
+  font:12px Arial,sans-serif;
+  letter-spacing:3px;
+  color:#c9a46a;
+  padding:20px 0 5px;
+}
+</style>
+
+<script>
+(()=>{
+'use strict';
+
+const cast=[
+  {
+    name:'Il Calcolatore',
+    motive:'Proteggere una falsificazione che avrebbe potuto distruggere la sua credibilità.',
+    secret:'Aveva alterato i risultati di una prova per proteggere qualcuno.',
+    question:'Chi avrebbe scoperto la falsificazione, e quale conseguenza avrebbe avuto per lui?'
+  },
+  {
+    name:'Il Giocatore',
+    motive:'Evitare di perdere tutto in una partita diventata troppo pericolosa.',
+    secret:'Il suo bisogno di vincere lo rendeva disposto a correre rischi estremi.',
+    question:'Che cosa rischiava davvero di perdere quella notte?'
+  },
+  {
+    name:'Il Manipolatore',
+    motive:'Impedire che Adriano rivelasse informazioni capaci di compromettere il suo controllo sugli altri.',
+    secret:'Conosceva le debolezze degli altri sospettati.',
+    question:'Quale segreto poteva trasformare la sua influenza in una minaccia?'
+  },
+  {
+    name:'Il Ribelle',
+    motive:'Fermare l’esperimento, anche a costo di superare ogni limite.',
+    secret:'Voleva distruggere il sistema costruito intorno ai partecipanti.',
+    question:'Il suo desiderio di ribellione era diventato qualcosa di più pericoloso?'
+  },
+  {
+    name:'Il Traditore',
+    motive:'Nascondere un accordo infranto prima che qualcuno ne scoprisse le conseguenze.',
+    secret:'Aveva tradito la fiducia di qualcuno.',
+    question:'Chi aveva tradito, e che cosa avrebbe perso se fosse stato scoperto?'
+  },
+  {
+    name:"L'Enigma",
+    motive:'Impedire che il proprio passato venisse finalmente portato alla luce.',
+    secret:'Nessuno conosceva davvero la sua storia.',
+    question:'Quale parte del suo passato lo legava alla vittima?'
+  },
+  {
+    name:'La Maschera',
+    motive:'Difendere una verità personale nascosta dietro un’apparente indifferenza.',
+    secret:'Era abituata a nascondere le proprie emozioni.',
+    question:'Quale emozione o relazione aveva cercato di non mostrare?'
+  },
+  {
+    name:'La Psicologa',
+    motive:'Evitare che le sue conoscenze sul comportamento dei partecipanti venissero usate contro di lei.',
+    secret:'Sapeva osservare e interpretare le reazioni altrui.',
+    question:'Aveva previsto le reazioni degli altri oppure cercato di influenzarle?'
+  },
+  {
+    name:'La Stratega',
+    motive:'Proteggere un piano che Adriano avrebbe potuto mandare in rovina.',
+    secret:'Era capace di prevedere le mosse degli altri.',
+    question:'Quanto della sequenza degli eventi aveva anticipato?'
+  },
+  {
+    name:'La Testimone',
+    motive:'Impedire che ciò che aveva visto diventasse una minaccia per lei.',
+    secret:'Aveva assistito a qualcosa che non avrebbe dovuto vedere.',
+    question:'Che cosa aveva visto, e perché quella scoperta poteva cambiarle la vita?'
+  }
+];
+
+const normalize=s=>
+  String(s||'')
+    .replace(/[’‘`]/g,"'")
+    .trim()
+    .toLowerCase();
+
+function make(tag,text,cls){
+  const e=document.createElement(tag);
+  if(text!==undefined)e.textContent=text;
+  if(cls)e.className=cls;
+  return e;
+}
+
+function section(parent,title,body){
+  const wrap=make('div',undefined,'mf-final-section');
+  wrap.append(make('h3',title),make('p',body));
+  parent.append(wrap);
+}
+
+function renderFinal(){
+  const verdict=document.getElementById('verdictArea');
+
+  // Non mostrare nulla prima della rivelazione.
+  if(!verdict ||
+     !verdict.classList.contains('revealed')){
+    return;
+  }
+
+  const heading=verdict.querySelector('h1');
+  if(!heading)return;
+
+  const name=heading.textContent.trim();
+  const index=cast.findIndex(c=>
+    normalize(c.name)===normalize(name)
+  );
+
+  if(index<0)return;
+
+  const existing=document.getElementById('mfCinematicFinal');
+
+  // Evita di duplicare il finale a ogni aggiornamento.
+  if(existing){
+    if(existing.dataset.culprit===normalize(name))return;
+    existing.remove();
+  }
+
+  const character=cast[index];
+  const final=make('section');
+  final.id='mfCinematicFinal';
+  final.dataset.culprit=normalize(name);
+
+  final.append(
+    make('div','MURDER FILES • CASE 001','mf-final-label'),
+    make('h2','IL VOLTO DIETRO IL DELITTO'),
+    make('h1',character.name)
+  );
+
+  const portrait=make('div',undefined,'mf-final-portrait');
+  portrait.setAttribute(
+    'role','img'
+  );
+  portrait.setAttribute(
+    'aria-label','Ritratto di '+character.name
+  );
+
+  portrait.style.backgroundPosition=
+    ((index%5)*25)+'% '+
+    (Math.floor(index/5)*100)+'%';
+
+  final.append(portrait);
+
+  section(
+    final,
+    'IL SEGRETO',
+    character.secret
+  );
+
+  section(
+    final,
+    'IL POSSIBILE MOVENTE',
+    character.motive
+  );
+
+  section(
+    final,
+    'LA NOTTE DEL DELITTO',
+    'Alle 23:31 parte un messaggio dal telefono di Adriano Valenti. '+
+    'Alle 23:38 la telecamera del corridoio viene disattivata. '+
+    'Alle 23:41 il sistema registra un accesso allo studio '+
+    'con le credenziali del colpevole. '+
+    'La morte viene collocata tra le 23:41 e le 23:44. '+
+    'Alle 23:47 viene ritrovato il corpo.'
+  );
+
+  section(
+    final,
+    'LE PROVE DECISIVE',
+    'Le credenziali di accesso, il codice temporaneo '+
+    'associato al dispositivo e le tracce biologiche '+
+    'sul fermacarte collegano il colpevole alla scena. '+
+    'Le prove acquistano forza quando vengono considerate '+
+    'insieme, pur non dimostrando isolatamente ogni passaggio.'
+  );
+
+  section(
+    final,
+    'LA DOMANDA RIMASTA APERTA',
+    character.question
+  );
+
+  final.append(
+    make(
+      'div',
+      'CASO CHIUSO • LA VERITÀ HA UN PREZZO',
+      'mf-final-end'
+    )
+  );
+
+  // Inserisce il finale dopo il risultato ufficiale.
+  verdict.append(final);
+}
+
+// Il sito aggiorna il verdetto periodicamente.
+// Questo controllo aggiunge il finale quando è disponibile.
+renderFinal();
+setInterval(renderFinal,1500);
+
+})();
+</script>
+
+<!-- MURDER FILES — FIX FINALE DEFINITIVO -->
+<script>
+(()=>{
+  'use strict';
+
+  const originalLoad=loadVerdict;
+
+  let loadingFinal=false;
+  let finalCompleted=false;
+
+  loadVerdict=async function(isHost){
+
+    const area=document.getElementById('verdictArea');
+
+    // Il finale è già stato costruito.
+    // Non cancellarlo e non ricrearlo.
+    if(
+      finalCompleted &&
+      area &&
+      area.classList.contains('revealed') &&
+      area.querySelector('#mfServerResult')
+    ){
+      return;
+    }
+
+    // Evita due aggiornamenti contemporanei.
+    if(loadingFinal)return;
+
+    loadingFinal=true;
+
+    try{
+      await originalLoad(isHost);
+
+      const final=document.getElementById('verdictArea');
+
+      if(
+        final &&
+        final.classList.contains('revealed') &&
+        final.querySelector('#mfServerResult')
+      ){
+        finalCompleted=true;
+      }
+
+    }finally{
+      loadingFinal=false;
+    }
+  };
+
+  // Quando il gioco cambia fase, il controllo
+  // del verdetto può ripartire normalmente.
+  const oldRefresh=refreshGame;
+
+  refreshGame=async function(){
+    if(phaseNow!=='stage_6'){
+      finalCompleted=false;
+    }
+
+    return await oldRefresh();
+  };
+
+})();
+</script>
+
+</html>
