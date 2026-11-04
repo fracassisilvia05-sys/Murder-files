@@ -109,7 +109,9 @@ async function restoreGameSession() {
     }
   );
 
-  if (error || !data || !data.started) return;
+  
+if (error || !data || !data.phase) return;
+
 
   currentCode = roomCode;
 
