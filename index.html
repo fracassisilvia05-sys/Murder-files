@@ -262,6 +262,39 @@ async function showMyCharacter() {
 
   
   document.querySelector(".container").appendChild(panel);
+  
+  const { data: secretRole, error: roleError } =
+    await db.rpc("get_my_secret_role", {
+      p_player_id: playerId,
+      p_access_token: token
+    });
+
+  const roleBox = document.createElement("div");
+  roleBox.style.marginTop = "24px";
+  roleBox.style.padding = "18px";
+  roleBox.style.border = "2px solid #b08a50";
+  roleBox.style.borderRadius = "8px";
+
+  const roleTitle = document.createElement("h2");
+  roleTitle.textContent = "IL TUO RUOLO SEGRETO";
+
+  const roleText = document.createElement("p");
+  roleText.className = "intro";
+
+  if (roleError || !secretRole) {
+    roleText.textContent =
+      "Impossibile caricare il ruolo segreto. " +
+      (roleError?.message || "Riprova.");
+  } else {
+    roleText.textContent = secretRole.message;
+    if (secretRole.is_culprit) {
+      roleTitle.style.color = "#e05252";
+    }
+  }
+
+  roleBox.append(roleTitle, roleText);
+  panel.appendChild(roleBox);
+
   await showGameClues();
 }
 
