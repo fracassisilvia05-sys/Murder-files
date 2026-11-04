@@ -113,6 +113,8 @@ function enterLobby(data,nickname){
 
 async function refreshLobby(){
   
+  if (!currentCode) return;
+  
   const gameStatus = await db.rpc("get_room_game_status", {
     p_room_code: currentCode
   });
