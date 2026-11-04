@@ -94,6 +94,34 @@ async function joinRoom(){
   enterLobby(data,nickname);
 }
 
+async function restoreGameSession() {
+  const playerId = sessionStorage.getItem("murder_player_id");
+  const token = sessionStorage.getItem("murder_player_token");
+  const roomCode = sessionStorage.getItem("murder_room_code");
+
+  if (!playerId || !token || !roomCode) return;
+
+  const { data, error } = await db.rpc(
+    "get_my_game_phase",
+    {
+      p_player_id: playerId,
+      p_access_token: token
+    }
+  );
+
+  if (error || !data || !data.started) return;
+
+  currentCode = roomCode;
+
+  document.getElementById("entry").classList.add("hidden");
+  document.getElementById("lobby").classList.remove("hidden");
+  document.getElementById("roomTitle").textContent = roomCode;
+
+  await showMyCharacter();
+}
+
+restoreGameSession();
+
 function enterLobby(data,nickname){
   if(!data || !data.room_code){showError("Risposta del database non valida.");return}
   currentCode = data.room_code;
