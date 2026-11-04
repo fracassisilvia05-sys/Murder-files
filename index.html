@@ -213,7 +213,7 @@ async function refreshLobby(){
  if(!currentCode)return;
  const state=await rpc("get_room_game_status",{p_room_code:currentCode});
  if(state?.started){stopPolling();await showMyCharacter();return}
- const players=await rpc("get_room_players",{p_room_code:
+ const players=await rpc("get_room_players",{p_room_code:currentCode});
    $("playerCount").textContent=(players||[]).length+" giocatori presenti (minimo 4, massimo 10)";
  $("playersList").replaceChildren(...(players||[]).map(p=>el("li","◆ "+p.nickname)));
  $("lobbyStatus").textContent=(players||[]).length>=4
