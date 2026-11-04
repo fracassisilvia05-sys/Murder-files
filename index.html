@@ -443,5 +443,365 @@ $("copyBtn").addEventListener("click",async()=>{
 });
 restoreSession();
 </script>
+  
+<!-- MURDER FILES — MODALITÀ IBRIDA -->
+<style>
+.mf-box{
+  margin:16px 0;
+  padding:16px;
+  border:1px solid #806747;
+  border-radius:9px;
+  background:#191820;
+  text-align:left;
+}
+.mf-box h3{color:#e2bb7f}
+.mf-box p{line-height:1.55}
+.mf-time{
+  font:bold 38px Arial;
+  text-align:center;
+  color:#e4bf84;
+}
+.mf-warning{color:#ffad9e}
+.mf-box button{margin-top:8px}
+.mf-box button:disabled{opacity:.45}
+</style>
+
+<script>
+(()=>{
+'use strict';
+
+const $mf=id=>document.getElementById(id);
+
+const mfKey=s=>
+  'mf_hybrid_'+storedCode()+'_'
+  +credentials().p_player_id+'_'+s;
+
+function mfRead(s){
+  try{
+    return JSON.parse(localStorage.getItem(mfKey(s))||'null');
+  }catch(e){return null}
+}
+
+function mfWrite(s,v){
+  try{
+    localStorage.setItem(mfKey(s),JSON.stringify(v));
+  }catch(e){}
+}
+
+function mfText(tag,txt){
+  const e=document.createElement(tag);
+  e.textContent=txt;
+  return e;
+}
+
+function mfBtn(txt,fn){
+  const b=document.createElement('button');
+  b.type='button';
+  b.textContent=txt;
+  b.addEventListener('click',fn);
+  return b;
+}
+
+let countdown=null;
+let remaining=30;
+let currentPhase='';
+
+function stopTimer(){
+  if(countdown){
+    clearInterval(countdown);
+    countdown=null;
+  }
+}
+
+function makeTimer(panel,seconds){
+  stopTimer();
+  remaining=seconds;
+
+  const display=mfText('div','');
+  display.className='mf-time';
+
+  const controls=document.createElement('div');
+
+  function update(){
+    const m=String(Math.floor(remaining/60)).padStart(2,'0');
+    const s=String(remaining%60).padStart(2,'0');
+    display.textContent=m+':'+s;
+
+    if(remaining===0){
+      stopTimer();
+      display.classList.add('mf-warning');
+    }else{
+      display.classList.remove('mf-warning');
+    }
+  }
+
+  const start=mfBtn('AVVIA TIMER',()=>{
+    stopTimer();
+    remaining=seconds;
+    update();
+
+    countdown=setInterval(()=>{
+      remaining=Math.max(0,remaining-1);
+      update();
+    },1000);
+  });
+
+  const pause=mfBtn('PAUSA',stopTimer);
+
+  const reset=mfBtn('AZZERA TIMER',()=>{
+    stopTimer();
+    remaining=seconds;
+    update();
+  });
+
+  controls.append(start,pause,reset);
+  panel.append(display,controls);
+  update();
+
+  return {display,controls};
+}
+
+function getPanel(){
+  let panel=$mf('mfHybridPanel');
+
+  if(!panel){
+    panel=document.createElement('section');
+    panel.id='mfHybridPanel';
+    panel.className='mf-box';
+
+    const target=$mf('interrogationArea');
+    if(target)target.insertAdjacentElement('afterend',panel);
+  }
+
+  return panel;
+}
+
+function renderHybrid(phase){
+  const active=['stage_2','stage_3','stage_5','stage_6'];
+
+  if(!active.includes(phase)){
+    stopTimer();
+    const old=$mf('mfHybridPanel');
+    if(old)old.remove();
+    currentPhase='';
+    return;
+  }
+
+  const panel=getPanel();
+  if(!panel)return;
+
+  if(currentPhase===phase && panel.childElementCount)return;
+
+  currentPhase=phase;
+  stopTimer();
+  panel.replaceChildren();
+
+  panel.append(
+    mfText('h3','♠ INTERROGATORIO DAL VIVO'),
+    mfText('p',
+      'Le domande e le risposte avvengono a voce. '
+      +'Puoi mentire sul tuo alibi, ma non inventare prove '
+      +'o modificare i fatti del dossier.'
+    )
+  );
+
+  if(phase==='stage_6'){
+    panel.append(
+      mfText('h3','ACCUSA FINALE'),
+      mfText('p',
+        'Prima di votare, dichiara al gruppo: '
+        +'chi accusi, il movente, l’occasione '
+        +'e la prova che contraddice il suo alibi.'
+      )
+    );
+    return;
+  }
+
+  const silenceUsed=!!mfRead('silence');
+
+  const silence=mfBtn(
+    silenceUsed
+      ?'DIRITTO AL SILENZIO GIÀ USATO'
+      :'USA IL MIO DIRITTO AL SILENZIO',
+    ()=>{
+      if(mfRead('silence'))return;
+
+      if(!confirm(
+        'Puoi rifiutare una risposta una sola volta. Confermi?'
+      ))return;
+
+      mfWrite('silence',true);
+      silence.textContent='DIRITTO AL SILENZIO GIÀ USATO';
+      silence.disabled=true;
+    }
+  );
+
+  silence.disabled=silenceUsed;
+  panel.append(silence);
+
+  panel.append(
+    mfText('p',
+      'Turno ordinario: una domanda a un sospettato. '
+      +'La risposta deve arrivare entro 30 secondi. '
+      +'Puoi contestarla citando una prova già sbloccata.'
+    )
+  );
+
+  const timerArea=document.createElement('div');
+  panel.append(timerArea);
+
+  function setTimer(seconds){
+    stopTimer();
+    timerArea.replaceChildren();
+    makeTimer(timerArea,seconds);
+  }
+
+  setTimer(30);
+
+  if(phase==='stage_5'){
+    panel.append(
+      mfText('h3','♠ CARTA VANTAGGIO'),
+      mfText('p',
+        '1 punto: domanda aggiuntiva a due sospettati diversi. '
+        +'2 punti: confronto riservato di 2 minuti. '
+        +'3 punti: tre domande consecutive allo stesso sospettato. '
+        +'La carta si usa una sola volta.'
+      )
+    );
+
+    const used=!!mfRead('reward_used');
+
+    const use=mfBtn(
+      used?'CARTA GIÀ UTILIZZATA':'SEGNA CARTA COME UTILIZZATA',
+      ()=>{
+        if(mfRead('reward_used'))return;
+
+        if(!confirm(
+          'Confermi di avere utilizzato la carta vantaggio?'
+        ))return;
+
+        mfWrite('reward_used',true);
+        use.textContent='CARTA GIÀ UTILIZZATA';
+        use.disabled=true;
+      }
+    );
+
+    use.id='mfUseReward';
+    use.disabled=used;
+    panel.append(use);
+
+    panel.append(
+      mfBtn('TIMER CONFRONTO RISERVATO — 2 MINUTI',
+        ()=>setTimer(120)
+      ),
+      mfBtn('TORNA AL TIMER DA 30 SECONDI',
+        ()=>setTimer(30)
+      )
+    );
+  }
+}
+
+/* Collega gli interrogatori alle fasi esistenti. */
+const originalRender=renderInvestigation;
+
+renderInvestigation=function(phase){
+  originalRender(phase);
+  renderHybrid(phase);
+};
+
+/* Verifica che la carta sia stata realmente ottenuta. */
+const originalReward=loadReward;
+
+loadReward=async function(){
+  await originalReward();
+
+  const use=$mf('mfUseReward');
+  if(!use)return;
+
+  try{
+    const reward=await rpc(
+      'get_my_dilemma_reward',
+      credentials()
+    );
+
+    if(
+      reward?.status!=='ready' ||
+      Number(reward.points)<=0
+    ){
+      use.disabled=true;
+      use.textContent='NESSUNA CARTA DISPONIBILE';
+    }
+  }catch(e){
+    use.disabled=true;
+    use.textContent='CARTA NON VERIFICABILE';
+  }
+};
+
+/* Aggiunge la ricostruzione dopo il verdetto. */
+const originalVerdict=loadVerdict;
+
+loadVerdict=async function(isHost){
+  await originalVerdict(isHost);
+
+  const final=$mf('verdictArea');
+
+  if(!final || !final.classList.contains('revealed'))return;
+  if($mf('mfFinalExplanation'))return;
+
+  const verdict=await rpc(
+    'get_case_verdict',
+    credentials()
+  );
+
+  const votes=verdict.results||[];
+
+  const total=votes.reduce(
+    (n,v)=>n+Number(v.votes||0),0
+  );
+
+  const culpritVotes=votes
+    .filter(v=>v.name===verdict.culprit)
+    .reduce((n,v)=>n+Number(v.votes||0),0);
+
+  const investigatorsWin=culpritVotes>total/2;
+
+  const panel=document.createElement('section');
+  panel.id='mfFinalExplanation';
+  panel.className='mf-box';
+
+  panel.append(
+    mfText('h3',
+      investigatorsWin
+        ?'VINCONO GLI INVESTIGATORI'
+        :'VINCE L’ASSASSINO'
+    ),
+    mfText('p',
+      'Voti per il vero colpevole: '
+      +culpritVotes+' su '+total
+      +'. Serve la maggioranza assoluta.'
+    ),
+    mfText('h3','RICOSTRUZIONE DEL DELITTO'),
+    mfText('p',
+      '23:31 — Dal telefono di Adriano parte un messaggio. '
+      +'23:38 — La telecamera viene disattivata. '
+      +'23:41 — Viene registrato un accesso allo studio. '
+      +'23:41–23:44 — Finestra della morte. '
+      +'23:47 — Viene ritrovato il corpo.'
+    ),
+    mfText('p',
+      'Le credenziali, il dispositivo e le tracce '
+      +'sul fermacarte collegano il colpevole '
+      +'all’accesso e alla scena. '
+      +'Ogni elemento deve essere valutato '
+      +'insieme agli altri e alle possibili spiegazioni alternative.'
+    )
+  );
+
+  final.append(panel);
+};
+
+})();
+</script>
+
 </body>
 </html>
