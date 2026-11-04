@@ -1,0 +1,56 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MURDER FILES — Modalità TEST</title><style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;padding:20px;background:#101014;color:#eee;font-family:Georgia,serif}main{max-width:640px;margin:auto}.tag{color:#d8ad6e;letter-spacing:3px;font:12px Arial}h1{letter-spacing:3px;font-size:clamp(30px,8vw,46px)}h2{color:#d9b77e}.panel{background:#1d1c23;border:1px solid #6a5438;border-radius:10px;padding:20px;margin:18px 0}p{line-height:1.6}.muted{color:#c0b8ad}button{background:#cba46a;color:#18120b;border:0;border-radius:6px;padding:13px 16px;margin:5px;font-weight:bold;cursor:pointer}button.alt{background:#292732;color:#f1d0a0;border:1px solid #8b7049}button:disabled{opacity:.45}textarea{width:100%;height:120px;background:#111116;border:1px solid #887050;color:white;border-radius:6px;padding:12px;font:16px Arial}select{padding:12px;background:#17171c;color:white;border:1px solid #887050;width:100%}.phases{display:flex;gap:6px;flex-wrap:wrap}.phases button{flex:1;min-width:36px}.active{outline:2px solid white}.hidden{display:none}.card{border:1px solid #9b8053;border-radius:8px;padding:15px;margin:12px 0;background:#26231e}.warn{color:#f2c384}.foot{font:12px Arial;color:#aaa}</style></head><body><main>
+<div class="tag">CASE 001 · SIMULAZIONE PRIVATA</div><h1>MURDER FILES</h1><p class="muted">MODALITÀ TEST — Gioca da sola, senza Supabase e senza modificare le partite vere.</p>
+<div class="panel"><strong>Seleziona una fase</strong><div id="phases" class="phases"></div></div>
+<div class="panel"><div class="tag">DOSSIER DIMOSTRATIVO</div><h2>ELENA MORETTI</h2><p>Conosci la vittima da anni. La sera del delitto hai nascosto un incontro che preferiresti non raccontare.</p><p class="warn">Obiettivo segreto: difendi il tuo alibi senza rivelare l'incontro.</p></div>
+<div class="panel"><div class="tag" id="stepLabel"></div><h2 id="heading"></h2><p id="brief" class="muted"></p><div id="content"></div></div>
+<div class="panel"><h2>✎ TACCUINO SEGRETO</h2><p class="muted">Le note di prova restano soltanto in questo browser.</p><textarea id="notes" placeholder="Sospetti, alibi, contraddizioni..."></textarea></div>
+<div class="panel"><button id="prev" class="alt">← FASE PRECEDENTE</button><button id="next">FASE SUCCESSIVA →</button></div>
+<p class="foot">SIMULAZIONE: nomi, prove e risultati qui sono inventati. Questa pagina serve a provare l'interfaccia; non verifica le connessioni multiplayer o le regole del database.</p>
+</main><script>
+"use strict";
+const phases=[
+["LA SCENA DEL CRIMINE","Adriano Valenti è stato trovato morto nello studio alle 23:40. Il suo orologio si è fermato alle 23:17.","La porta dello studio era socchiusa. Un bicchiere rotto è stato trovato vicino alla scrivania."],
+["I FASCICOLI SEGRETI","Ogni personaggio possiede un passato, un alibi e un obiettivo nascosto.","Domanda al tavolo: chi può confermare dove eri alle 23:17?"],
+["LE CARTE INDIZIO","Confronta le versioni. Alcune prove possono essere fraintese.","Carta indizio: un biglietto strappato riporta la frase «Non dovevi tornare»."],
+["IL DILEMMA DEL PRIGIONIERO","Tu e un altro giocatore scegliete segretamente se collaborare o tradire.","Se collaborate entrambi: 2 punti ciascuno. Se uno tradisce: 3 a chi tradisce e 0 all'altro. Se tradite entrambi: 1 ciascuno."],
+["LA RICOSTRUZIONE","Confronta movente, occasione e alibi. Le carte bonus offrono poteri di interrogatorio.","Ricostruite gli ultimi dieci minuti prima della morte di Adriano."],
+["IL VERDETTO","Accusa un sospettato. Nel gioco vero il verdetto arriva quando tutti hanno votato.","Il tuo voto di prova non verrà inviato al database."]
+];
+const $=id=>document.getElementById(id);
+let phase=0,points=2,voted=false,choice="";
+const names=["Elena Moretti","Luca Ferri","Giulia Rinaldi","Marco Conti","Sara Bellini","Davide Costa","Chiara Greco","Andrea Villa","Martina Russo","Federico Neri"];
+function node(tag,txt){const x=document.createElement(tag);x.textContent=txt;return x}
+function btn(label,fn,alt=false){const x=node("button",label);if(alt)x.className="alt";x.onclick=fn;return x}
+function render(){
+$("phases").replaceChildren(...phases.map((_,i)=>{const b=btn(String(i+1),()=>{phase=i;render()},true);if(i===phase)b.classList.add("active");return b}));
+$("stepLabel").textContent="FASE "+(phase+1)+" / 6";
+$("heading").textContent=phases[phase][0];$("brief").textContent=phases[phase][1];
+const c=$("content");c.replaceChildren();c.append(node("p",phases[phase][2]));
+if(phase===1||phase===2||phase===4){
+const prompts=phase===1?["Chi può confermare il tuo alibi?","Quale segreto non vuoi rivelare?"]:phase===2?["Quale prova contraddice un alibi?","Chi avrebbe un movente?"]:["Chi ha mentito sull'orario?","Quale dettaglio nessuno ha spiegato?","Chi avrebbe avuto accesso allo studio?"];
+const p=node("div",prompts[0]);p.className="card";let k=0;c.append(p,btn("PESCA UNA DOMANDA",()=>{k=(k+1)%prompts.length;p.textContent=prompts[k]},true));
+}
+if(phase===3){
+c.append(node("h3","Prova una scelta"));
+const out=node("div","");out.className="card";c.append(btn("🤝 COLLABORA",()=>{choice="cooperate";points=0;out.textContent="Hai collaborato, l'avversario ha tradito: 0 punti."}),btn("🎭 TRADISCI",()=>{choice="betray";points=3;out.textContent="Hai tradito, l'avversario ha collaborato: 3 punti."},true),btn("PROVA JOLLY",()=>{choice="joker";points=2;out.textContent="Sei il Jolly: 2 punti."},true),out);
+}
+if(phase===4||phase===5){
+const cards={0:["NESSUNA CARTA BONUS","Non hai ottenuto un vantaggio."],1:["DOMANDA INCROCIATA","Puoi rivolgere una domanda diretta a un giocatore."],2:["CONFRONTO RISERVATO","Scegli due giocatori: rispondono alla stessa domanda senza consultarsi."],3:["CONTROINTERROGATORIO","Puoi porre tre domande consecutive a un giocatore."]};
+const card=node("div","");card.className="card";const title=node("h3","♠ CARTA VANTAGGIO");const desc=node("p","");card.append(title,desc);c.append(card);
+function updateCard(){title.textContent="♠ "+cards[points][0]+" — "+points+" punti";desc.textContent=cards[points][1]}updateCard();
+c.append(node("p","Simula un punteggio:"),...[0,1,2,3].map(n=>btn(String(n),()=>{points=n;updateCard()},true)));
+}
+if(phase===5){
+c.append(node("h3","VOTA IL SOSPETTATO"));
+const select=node("select","");names.forEach(n=>{const opt=node("option",n);opt.value=n;select.append(opt)});c.append(select);
+const result=node("div","");result.className="card";c.append(btn("CONFERMA ACCUSA",()=>{voted=true;result.textContent="Accusa registrata nella simulazione: "+select.value+". Ora puoi rivelare il colpevole."}),btn("RIVELA IL COLPEVOLE",()=>{result.replaceChildren(node("h2","IL COLPEVOLE È..."),node("h1","LUCA FERRI"),node("p","CASO CHIUSO — Questo è un verdetto dimostrativo."))},true),result);
+}
+$("prev").disabled=phase===0;$("next").disabled=phase===5;
+}
+$("prev").onclick=()=>{if(phase>0){phase--;render()}};
+$("next").onclick=()=>{if(phase<5){phase++;render()}};
+const noteKey="mf_demo_notes";try{$("notes").value=localStorage.getItem(noteKey)||""}catch(e){}
+$("notes").addEventListener("input",()=>{try{localStorage.setItem(noteKey,$("notes").value)}catch(e){}});
+render();
+</script></body></html>
