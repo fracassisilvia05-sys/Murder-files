@@ -1727,4 +1727,98 @@ setInterval(renderFinal,1500);
 })();
 </script>
 
+<!-- MURDER FILES — INTRODUZIONE -->
+<style>
+#mfIntro{
+  position:fixed;
+  inset:0;
+  z-index:99999;
+  background:#0b0b10;
+  color:#eee;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:25px;
+  text-align:center;
+  overflow-y:auto;
+}
+#mfIntroBox{
+  max-width:500px;
+  animation:mfIntroAppear 1.5s ease;
+}
+#mfIntroBox h1{
+  color:#c9a46a;
+  letter-spacing:4px;
+}
+#mfIntroBox p{
+  line-height:1.9;
+  font-size:17px;
+}
+#mfIntroStart{
+  margin-top:25px;
+  background:#8b2020;
+  color:white;
+  font-weight:bold;
+  letter-spacing:2px;
+}
+@keyframes mfIntroAppear{
+  from{opacity:0;transform:translateY(20px)}
+  to{opacity:1;transform:translateY(0)}
+}
+</style>
+
+<script>
+(()=>{
+  // Non interrompere una partita già avviata.
+  if(sessionStorage.getItem('mfIntroSeen'))return;
+
+  const intro=document.createElement('div');
+  intro.id='mfIntro';
+
+  intro.innerHTML=`
+    <div id="mfIntroBox">
+      <div style="color:#c9a46a;letter-spacing:4px">
+        CASE 001
+      </div>
+
+      <h1>MURDER FILES</h1>
+
+      <p>
+        Dieci persone.<br>
+        Un omicidio.<br>
+        Un assassino nascosto tra voi.
+      </p>
+
+      <p>
+        Questa sera non potrete fidarvi di nessuno.
+        Ogni parola potrebbe essere una bugia.
+        Ogni alleanza, un tradimento.
+      </p>
+
+      <p>
+        Avrete una sola possibilità
+        di scoprire la verità.
+      </p>
+
+      <p style="color:#c9a46a">
+        L'assassino conosce già il proprio nome.<br>
+        Voi no.
+      </p>
+
+      <button id="mfIntroStart">
+        ♠ INIZIA IL GIOCO
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(intro);
+
+  document.getElementById('mfIntroStart')
+    .addEventListener('click',()=>{
+      sessionStorage.setItem('mfIntroSeen','1');
+      intro.remove();
+    });
+})();
+</script>
+
 </html>
