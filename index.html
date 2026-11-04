@@ -558,11 +558,18 @@ async function loadDilemma() {
 
   // Non ricreare i pulsanti a ogni aggiornamento.
   if (
-    result.status === "waiting" &&
-    !result.has_chosen &&
-    area.dataset.mode === "choosing"
-  ) {
-    return;
+  result.status === "waiting" &&
+  !result.has_chosen &&
+  area.dataset.mode === "choosing"
+) {
+  return;
+}
+
+// Se entrambi hanno scelto, aggiorna
+// immediatamente la schermata dei risultati.
+if (result.status === "completed") {
+  area.dataset.mode = "";
+}
   }
 
   area.replaceChildren();
