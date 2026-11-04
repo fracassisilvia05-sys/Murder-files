@@ -112,35 +112,45 @@ function enterLobby(data,nickname){
 }
 
 async function refreshLobby(){
-  if(!currentCode)return;
+  if(!currentCode) return;
+
   const count = document.getElementById("playerCount");
   const list = document.getElementById("playersList");
-  const {data:room,error:roomError} = await db.from("rooms").select("id").eq("code",currentCode).maybeSingle();
-  if(roomError || !room){
+
+  const {data, error} = await db.rpc("get_room_players", {
+    p_room_code: currentCode
+  });
+
+  if(error){
     count.textContent = "Partecipanti non disponibili";
     list.replaceChildren();
-    document.getElementById("lobbyStatus").textContent = "Il database non consente ancora di leggere la stanza. Verificheremo le autorizzazioni.";
+    document.getElementById("lobbyStatus").textContent =
+      "Errore nel caricamento dei partecipanti.";
+    console.error("Errore partecipanti:", error);
     return;
   }
-  const {data:players,error:playersError} = await db.from("players").select("nickname").eq("room_id",room.id);
-  if(playersError){
-    count.textContent = "Partecipanti non disponibili";
-    list.replaceChildren();
-    document.getElementById("lobbyStatus").textContent = "Il database non consente ancora di leggere la lista. Verificheremo le autorizzazioni.";
-    return;
-  }
-  const names = (players || []).map(p=>p.nickname).filter(Boolean);
-  count.textContent = names.length+" / 10 investigatori";
+
+  const names = (data || [])
+    .map(player => player.nickname)
+    .filter(Boolean);
+
+  count.textContent = names.length + " / 10 investigatori";
+
   list.replaceChildren();
-  names.forEach(name=>{
+
+  names.forEach(name => {
     const li = document.createElement("li");
-    li.textContent = "◆ "+name;
+    li.textContent = "◆ " + name;
     list.appendChild(li);
   });
-  document.getElementById("lobbyStatus").textContent = names.length<9 ?
-    "In attesa degli altri investigatori..." :
-    "Partecipanti presenti. L'avvio della partita non è ancora attivo.";
+
+  document.getElementById("lobbyStatus").textContent =
+    names.length < 9
+      ? "In attesa degli altri investigatori..."
+      : "Partecipanti presenti. L'avvio della partita non è ancora attivo.";
 }
+
+
 
 async function copyCode(){
   try{
