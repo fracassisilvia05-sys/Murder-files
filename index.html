@@ -1,4 +1,32 @@
 <!DOCTYPE html>
+
+<!-- MURDER FILES — FIX VERDETTO STABILE -->
+<script>
+(()=>{
+  'use strict';
+
+  const previousLoadVerdict=loadVerdict;
+
+  loadVerdict=async function(isHost){
+    const final=document.getElementById('verdictArea');
+
+    // Se il verdetto è già visibile, non ricrearlo.
+    if(
+      final &&
+      final.classList.contains('revealed') &&
+      final.querySelector('h1') &&
+      final.querySelector('#mfServerResult')
+    ){
+      return;
+    }
+
+    // Prima della rivelazione, il gioco
+    // continua a funzionare normalmente.
+    return await previousLoadVerdict(isHost);
+  };
+})();
+</script>
+
 <html lang="it">
 <head>
 <meta charset="UTF-8">
